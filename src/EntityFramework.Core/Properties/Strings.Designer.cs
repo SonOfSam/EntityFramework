@@ -1061,14 +1061,6 @@ namespace Microsoft.Data.Entity.Internal
         }
 
         /// <summary>
-        /// The property '{property}' is not a Byte array. TimestampAttribute can only be applied for Byte array properties.
-        /// </summary>
-        public static string TimestampAttributeOnNonBinary([CanBeNull] object property)
-        {
-            return string.Format(CultureInfo.CurrentCulture, GetString("TimestampAttributeOnNonBinary", "property"), property);
-        }
-
-        /// <summary>
         /// The entity type related to '{entityType}' cannot be determined because the specified foreign key {foreignKey} references an entity type that it is in the same hierarchy as the entity type that it is declared on.
         /// </summary>
         public static string IntraHierarchicalAmbiguousTargetEntityType([CanBeNull] object entityType, [CanBeNull] object foreignKey)
@@ -1138,6 +1130,14 @@ namespace Microsoft.Data.Entity.Internal
         public static string DataBindingWithIListSource
         {
             get { return GetString("DataBindingWithIListSource"); }
+        }
+
+        /// <summary>
+        /// The derived type '{derivedType}' cannot have KeyAttribute on property '{property}' since primary key can only be declared on the root type.
+        /// </summary>
+        public static string KeyAttributeOnDerivedEntity([CanBeNull] object derivedType, [CanBeNull] object property)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("KeyAttributeOnDerivedEntity", "derivedType", "property"), derivedType, property);
         }
 
         private static string GetString(string name, params string[] formatterNames)

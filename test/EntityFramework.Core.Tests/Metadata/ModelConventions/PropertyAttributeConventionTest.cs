@@ -162,6 +162,20 @@ namespace Microsoft.Data.Entity.Metadata.Conventions
             Assert.Equal("Id", model.GetEntityType(typeof(B)).GetPrimaryKey().Properties[1].Name);
         }
 
+        [Fact]
+        public void KeyAttribute_throws_when_setting_key_in_derived_type()
+        {
+            var derivedEntityTypeBuilder = CreateInternalEntityTypeBuilder<DerivedEntity>();
+            var baseEntityType = derivedEntityTypeBuilder.ModelBuilder.Entity(typeof(BaseEntity), ConfigurationSource.Explicit).Metadata;
+            derivedEntityTypeBuilder.BaseType(baseEntityType, ConfigurationSource.Explicit);
+
+            var propertyBuilder = derivedEntityTypeBuilder.Property("Number", typeof(int), ConfigurationSource.Explicit);
+
+            Assert.Equal(
+                Strings.KeyAttributeOnDerivedEntity(derivedEntityTypeBuilder.Metadata.DisplayName(), propertyBuilder.Metadata.Name),
+                Assert.Throws<InvalidOperationException>(() => new KeyAttributeConvention().Apply(propertyBuilder)).Message);
+        }
+
         #endregion
 
         #region MaxLengthAttribute
@@ -368,17 +382,6 @@ namespace Microsoft.Data.Entity.Metadata.Conventions
             Assert.True(entityTypeBuilder.Property(e => e.Timestamp).Metadata.IsConcurrencyToken);
         }
 
-        [Fact]
-        public void TimestampAttribute_throws_if_used_on_non_binary_property()
-        {
-            var entityTypeBuilder = CreateInternalEntityTypeBuilder<C>();
-
-            var propertyBuilder = entityTypeBuilder.Property("Timestamp", typeof(string), ConfigurationSource.Explicit);
-
-            Assert.Equal(Strings.TimestampAttributeOnNonBinary("Timestamp"),
-                Assert.Throws<InvalidOperationException>(() => new TimestampAttributeConvention().Apply(propertyBuilder)).Message);
-        }
-
         #endregion
 
         [Fact]
@@ -430,7 +433,7 @@ namespace Microsoft.Data.Entity.Metadata.Conventions
             private int? PrivateProperty { get; set; }
         }
 
-        public class B
+        private class B
         {
             [Key]
             public int Id { get; set; }
@@ -439,18 +442,19 @@ namespace Microsoft.Data.Entity.Metadata.Conventions
             public int MyPrimaryKey { get; set; }
         }
 
-        public class C
+        private class BaseEntity
         {
-            [Key]
             public int Id { get; set; }
-
-            public string Data { get; set; }
-
-            [Timestamp]
-            public string Timestamp { get; set; }
         }
 
-        public class MyContext : DbContext
+        private class DerivedEntity : BaseEntity
+        {
+            [Key]
+            public int Number { get; set; }
+        }
+
+
+        private class MyContext : DbContext
         {
             protected internal override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
             {
