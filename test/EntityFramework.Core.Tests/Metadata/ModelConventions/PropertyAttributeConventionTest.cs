@@ -130,18 +130,35 @@ namespace Microsoft.Data.Entity.Metadata.Conventions
         [Fact]
         public void KeyAttribute_sets_primary_key_for_single_property()
         {
-            var modelBuilder = new ModelBuilder(new CoreConventionSetBuilder().CreateConventionSet());
-            var entityTypeBuilder = modelBuilder.Entity<A>();
+            var entityTypeBuilder = CreateInternalEntityTypeBuilder<A>();
 
-            Assert.Equal(1, entityTypeBuilder.Metadata.GetPrimaryKey().Properties.Count);
-            Assert.Equal("MyPrimaryKey", entityTypeBuilder.Metadata.GetPrimaryKey().Properties[0].Name);
+            var propertyBuilder = entityTypeBuilder.Property("MyPrimaryKey", typeof(int), ConfigurationSource.Explicit);
+
+            Assert.Null(entityTypeBuilder.Metadata.FindDeclaredPrimaryKey());
+
+            new KeyAttributeConvention().Apply(propertyBuilder);
+
+            Assert.Equal(1, entityTypeBuilder.Metadata.FindDeclaredPrimaryKey().Properties.Count);
+            Assert.Equal("MyPrimaryKey", entityTypeBuilder.Metadata.FindDeclaredPrimaryKey().Properties[0].Name);
         }
 
         [Fact]
         public void KeyAttribute_throws_when_setting_composite_primary_key()
         {
-            var modelBuilder = new ModelBuilder(new CoreConventionSetBuilder().CreateConventionSet());
-            var entityTypeBuilder = modelBuilder.Entity<B>();
+            var entityTypeBuilder = CreateInternalEntityTypeBuilder<B>();
+            var keyAttributeConvention = new KeyAttributeConvention();
+
+            Assert.Null(entityTypeBuilder.Metadata.FindDeclaredPrimaryKey());
+
+            var idPropertyBuilder = entityTypeBuilder.Property("Id", typeof(int), ConfigurationSource.Explicit);
+            var myPrimaryKeyPropertyBuilder = entityTypeBuilder.Property("MyPrimaryKey", typeof(int), ConfigurationSource.Explicit);
+
+            keyAttributeConvention.Apply(idPropertyBuilder);
+
+            Assert.Equal(1, entityTypeBuilder.Metadata.FindDeclaredPrimaryKey().Properties.Count);
+            Assert.Equal("Id", entityTypeBuilder.Metadata.FindDeclaredPrimaryKey().Properties[0].Name);
+
+            keyAttributeConvention.Apply(myPrimaryKeyPropertyBuilder);
 
             Assert.Equal(2, entityTypeBuilder.Metadata.GetPrimaryKey().Properties.Count);
             Assert.Equal("Id", entityTypeBuilder.Metadata.GetPrimaryKey().Properties[0].Name);
@@ -149,7 +166,7 @@ namespace Microsoft.Data.Entity.Metadata.Conventions
 
             Assert.Equal(
                 Strings.CompositePKWithDataAnnotation(entityTypeBuilder.Metadata.DisplayName()),
-                Assert.Throws<InvalidOperationException>(() => modelBuilder.Validate()).Message);
+                Assert.Throws<InvalidOperationException>(() => keyAttributeConvention.Apply(entityTypeBuilder.ModelBuilder)).Message);
         }
 
         [Fact]
