@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -8,7 +9,6 @@ using JetBrains.Annotations;
 using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Query.Annotations;
 using Microsoft.Data.Entity.Query.ExpressionVisitors;
-using Microsoft.Data.Entity.Storage;
 using Microsoft.Data.Entity.Utilities;
 using Microsoft.Framework.Logging;
 using Remotion.Linq;
@@ -24,27 +24,30 @@ namespace Microsoft.Data.Entity.Query
         private IReadOnlyCollection<QueryAnnotationBase> _queryAnnotations;
         private IDictionary<IQuerySource, List<IReadOnlyList<INavigation>>> _trackableIncludes;
         private ISet<IQuerySource> _querySourcesRequiringMaterialization;
-        private IDatabase _database;
 
         public QueryCompilationContext(
             [NotNull] ILoggerFactory loggerFactory,
             [NotNull] IEntityQueryModelVisitorFactory entityQueryModelVisitorFactory,
             [NotNull] IRequiresMaterializationExpressionVisitorFactory requiresMaterializationExpressionVisitorFactory,
-            [NotNull] IDatabase database,
-            [NotNull] ILinqOperatorProvider linqOperatorProvider)
+            [NotNull] ILinqOperatorProvider linqOperatorProvider,
+            [NotNull] Type contextType)
         {
             Check.NotNull(loggerFactory, nameof(loggerFactory));
             Check.NotNull(entityQueryModelVisitorFactory, nameof(entityQueryModelVisitorFactory));
             Check.NotNull(requiresMaterializationExpressionVisitorFactory, nameof(requiresMaterializationExpressionVisitorFactory));
-            Check.NotNull(database, nameof(database));
             Check.NotNull(linqOperatorProvider, nameof(linqOperatorProvider));
+            Check.NotNull(contextType, nameof(contextType));
 
-            Logger = loggerFactory.CreateLogger<Database>();
+            Logger = loggerFactory.CreateLogger<QueryCompilationContext>();
+
             _entityQueryModelVisitorFactory = entityQueryModelVisitorFactory;
             _requiresMaterializationExpressionVisitorFactory = requiresMaterializationExpressionVisitorFactory;
-            _database = database;
+
             LinqOperatorProvider = linqOperatorProvider;
+            ContextType = contextType;
         }
+
+        public virtual Type ContextType { get; }
 
         public virtual ILogger Logger { get; }
 
@@ -70,10 +73,11 @@ namespace Microsoft.Data.Entity.Query
                 .Where(qa => qa.IsCallTo(Check.NotNull(methodInfo, nameof(methodInfo))));
 
         public virtual EntityQueryModelVisitor CreateQueryModelVisitor()
-            => _entityQueryModelVisitorFactory.Create(this, _database);
+            => CreateQueryModelVisitor(parentEntityQueryModelVisitor: null);
 
-        public virtual EntityQueryModelVisitor CreateQueryModelVisitor([CanBeNull] EntityQueryModelVisitor parentEntityQueryModelVisitor)
-            => _entityQueryModelVisitorFactory.Create(parentEntityQueryModelVisitor.QueryCompilationContext, _database, parentEntityQueryModelVisitor);
+        public virtual EntityQueryModelVisitor CreateQueryModelVisitor(
+            [CanBeNull] EntityQueryModelVisitor parentEntityQueryModelVisitor)
+            => _entityQueryModelVisitorFactory.Create(this, parentEntityQueryModelVisitor);
 
         public virtual void AddTrackableInclude(
             [NotNull] IQuerySource querySource, [NotNull] IReadOnlyList<INavigation> navigationPath)

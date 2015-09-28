@@ -5,14 +5,16 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Data.Entity.FunctionalTests;
+using Microsoft.Data.Entity.FunctionalTests.TestUtilities.Xunit;
 using Microsoft.Framework.DependencyInjection;
 using Xunit;
 
 namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
 {
+    [SqlServerCondition(SqlServerCondition.SupportsSequences)]
     public class SequenceEndToEndTest
     {
-        [Fact]
+        [ConditionalFact]
         public void Can_use_sequence_end_to_end()
         {
             var serviceProvider = new ServiceCollection()
@@ -30,7 +32,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
             AddEntities(serviceProvider);
             AddEntities(serviceProvider);
 
-            // Use a different service provider so a different generator pool is used but with
+            // Use a different service provider so a different generator is used but with
             // the same server sequence.
             serviceProvider = new ServiceCollection()
                 .AddEntityFramework()
@@ -66,7 +68,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
             }
         }
 
-        [Fact]
+        [ConditionalFact]
         public async Task Can_use_sequence_end_to_end_async()
         {
             var serviceProvider = new ServiceCollection()
@@ -84,7 +86,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
             await AddEntitiesAsync(serviceProvider, "BroniesAsync");
             await AddEntitiesAsync(serviceProvider, "BroniesAsync");
 
-            // Use a different service provider so a different generator pool is used but with
+            // Use a different service provider so a different generator is used but with
             // the same server sequence.
             serviceProvider = new ServiceCollection()
                 .AddEntityFramework()
@@ -120,7 +122,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
             }
         }
 
-        // [Fact] Currently disabled due to GitHub issue #266
+        // [ConditionalFact] Currently disabled due to GitHub issue #266
         public async Task Can_use_sequence_end_to_end_from_multiple_contexts_concurrently_async()
         {
             var serviceProvider = new ServiceCollection()
@@ -163,7 +165,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
             }
         }
 
-        [Fact]
+        [ConditionalFact]
         public void Can_use_explicit_values()
         {
             var serviceProvider = new ServiceCollection()
@@ -181,7 +183,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
             AddEntitiesWithIds(serviceProvider, 0);
             AddEntitiesWithIds(serviceProvider, 2);
 
-            // Use a different service provider so a different generator pool is used but with
+            // Use a different service provider so a different generator is used but with
             // the same server sequence.
             serviceProvider = new ServiceCollection()
                 .AddEntityFramework()
@@ -243,7 +245,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
             {
                 modelBuilder.Entity<Pegasus>(b =>
                     {
-                        b.Key(e => e.Identifier);
+                        b.HasKey(e => e.Identifier);
                         b.Property(e => e.Identifier).UseSqlServerSequenceHiLo();
                     });
             }
@@ -255,7 +257,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
             public string Name { get; set; }
         }
 
-        [Fact] // Issue #478
+        [ConditionalFact] // Issue #478
         public void Can_use_sequence_with_nullable_key_end_to_end()
         {
             var serviceProvider = new ServiceCollection()
@@ -286,7 +288,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
             }
         }
 
-        [Fact] // Issue #478
+        [ConditionalFact] // Issue #478
         public void Can_use_identity_with_nullable_key_end_to_end()
         {
             var serviceProvider = new ServiceCollection()
@@ -354,7 +356,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
             {
                 modelBuilder.Entity<Unicon>(b =>
                     {
-                        b.Key(e => e.Identifier);
+                        b.HasKey(e => e.Identifier);
                         if (_useSequence)
                         {
                             b.Property(e => e.Identifier).UseSqlServerSequenceHiLo();

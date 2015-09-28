@@ -11,6 +11,7 @@ using Microsoft.Data.Entity.ValueGeneration;
 using Microsoft.Data.Entity.InMemory;
 using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Storage;
+using Microsoft.Data.Entity.ValueGeneration.Internal;
 using Microsoft.Framework.DependencyInjection;
 using Moq;
 using Xunit;
@@ -1438,23 +1439,104 @@ namespace Microsoft.Data.Entity.Tests.ChangeTracking
 
             modelBuilder
                 .Entity<FirstDependent>()
-                .Reference(e => e.Second)
-                .InverseReference(e => e.First)
-                .ForeignKey<SecondDependent>(e => e.Id);
+                .HasOne(e => e.Second)
+                .WithOne(e => e.First)
+                .ForeignKey<SecondDependent>(e => e.Id)
+                .WillCascadeOnDelete();
 
             modelBuilder
                 .Entity<Root>(b =>
                     {
                         b.Property(e => e.Id).ValueGeneratedNever();
 
-                        b.Reference(e => e.First)
-                            .InverseReference(e => e.Root)
+                        b.HasOne(e => e.First)
+                            .WithOne(e => e.Root)
                             .ForeignKey<FirstDependent>(e => e.Id);
 
                     });
 
 
             return modelBuilder.Model;
+        }
+
+        [Fact]
+        public void Unchanged_entity_with_conceptually_null_FK_with_cascade_delete_is_marked_Deleted()
+        {
+            var model = BuildOneToOneModel();
+            var entityType = model.GetEntityType(typeof(SecondDependent).FullName);
+            var fkProperty = entityType.GetProperty("Id");
+
+            var entry = CreateInternalEntry(TestHelpers.Instance.CreateContextServices(model), entityType, new SecondDependent());
+
+            entry[fkProperty] = 77;
+            entry.SetEntityState(EntityState.Unchanged);
+
+            entry[fkProperty] = null;
+            entry.PrepareToSave();
+
+            Assert.Equal(EntityState.Deleted, entry.EntityState);
+        }
+
+        [Fact]
+        public void Added_entity_with_conceptually_null_FK_with_cascade_delete_is_detached()
+        {
+            var model = BuildOneToOneModel();
+            var entityType = model.GetEntityType(typeof(SecondDependent).FullName);
+            var fkProperty = entityType.GetProperty("Id");
+
+            var entry = CreateInternalEntry(TestHelpers.Instance.CreateContextServices(model), entityType, new SecondDependent());
+
+            entry[fkProperty] = 77;
+            entry.SetEntityState(EntityState.Added);
+
+            entry[fkProperty] = null;
+            entry.PrepareToSave();
+
+            Assert.Equal(EntityState.Detached, entry.EntityState);
+        }
+
+        [Fact]
+        public void Unchanged_entity_with_conceptually_null_FK_without_cascade_delete_throws()
+        {
+            var model = BuildModel();
+            var entityType = model.GetEntityType(typeof(SomeDependentEntity).FullName);
+            var keyProperties = new[] { entityType.GetProperty("Id1"), entityType.GetProperty("Id2") };
+            var fkProperty = entityType.GetProperty("SomeEntityId");
+            var configuration = TestHelpers.Instance.CreateContextServices(model);
+
+            var entry = CreateInternalEntry(configuration, entityType, new SomeDependentEntity());
+            entry[keyProperties[0]] = 77;
+            entry[keyProperties[1]] = "ReadySalted";
+            entry[fkProperty] = 99;
+
+            entry.SetEntityState(EntityState.Unchanged);
+            entry[fkProperty] = null;
+
+            Assert.Equal(
+                Strings.RelationshipConceptualNull("SomeEntity", "SomeDependentEntity"),
+                Assert.Throws<InvalidOperationException>(() => entry.PrepareToSave()).Message);
+        }
+
+        [Fact]
+        public void Unchanged_entity_with_conceptually_null_non_FK_property_throws()
+        {
+            var model = BuildModel();
+            var entityType = model.GetEntityType(typeof(SomeDependentEntity).FullName);
+            var keyProperties = new[] { entityType.GetProperty("Id1"), entityType.GetProperty("Id2") };
+            var property = entityType.GetProperty("JustAProperty");
+            var configuration = TestHelpers.Instance.CreateContextServices(model);
+
+            var entry = CreateInternalEntry(configuration, entityType, new SomeDependentEntity());
+            entry[keyProperties[0]] = 77;
+            entry[keyProperties[1]] = "ReadySalted";
+            entry[property] = 99;
+
+            entry.SetEntityState(EntityState.Unchanged);
+            entry[property] = null;
+
+            Assert.Equal(
+                Strings.PropertyConceptualNull("JustAProperty", "SomeDependentEntity"),
+                Assert.Throws<InvalidOperationException>(() => entry.PrepareToSave()).Message);
         }
 
         public class TestInMemoryValueGeneratorSelector : InMemoryValueGeneratorSelector

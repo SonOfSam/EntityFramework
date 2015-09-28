@@ -12,7 +12,8 @@ namespace EntityFramework.Microbenchmarks.Core
     {
         private static Lazy<BenchmarkConfig> _instance = new Lazy<BenchmarkConfig>(() =>
         {
-            var config = new ConfigurationBuilder(".")
+            var config = new ConfigurationBuilder()
+                .SetBasePath(".")
                 .AddJsonFile("config.json")
                 .AddEnvironmentVariables()
                 .Build();
@@ -22,7 +23,7 @@ namespace EntityFramework.Microbenchmarks.Core
             return new BenchmarkConfig
             {
                 RunIterations = bool.Parse(config["benchmarks:runIterations"]),
-                ResultDatabases = resultDatabasesSection.GetChildren().Select(s => config[s.Key]).ToArray(),
+                ResultDatabases = resultDatabasesSection.GetChildren().Select(s => s.Value).ToArray(),
                 BenchmarkDatabaseInstance = config["benchmarks:benchmarkDatabaseInstance"],
                 ProductReportingVersion = config["benchmarks:productReportingVersion"],
                 CustomData = config["benchmarks:customData"]

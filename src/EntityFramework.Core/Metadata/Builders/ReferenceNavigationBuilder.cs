@@ -75,18 +75,18 @@ namespace Microsoft.Data.Entity.Metadata.Builders
         ///     If null, there is no navigation property on the other end of the relationship.
         /// </param>
         /// <returns> An object to further configure the relationship. </returns>
-        public virtual ReferenceCollectionBuilder InverseCollection([CanBeNull] string collection = null)
-            => new ReferenceCollectionBuilder(InverseCollectionBuilder(collection));
+        public virtual ReferenceCollectionBuilder WithMany([CanBeNull] string collection = null)
+            => new ReferenceCollectionBuilder(WithManyBuilder(collection));
 
         /// <summary>
-        ///     Returns the internal builder to be used when <see cref="InverseCollection" /> is called.
+        ///     Returns the internal builder to be used when <see cref="WithMany" /> is called.
         /// </summary>
         /// <param name="collection">
         ///     The name of the collection navigation property on the other end of this relationship.
         ///     If null, there is no navigation property on the other end of the relationship.
         /// </param>
         /// <returns> The internal builder to further configure the relationship. </returns>
-        protected virtual InternalRelationshipBuilder InverseCollectionBuilder([CanBeNull] string collection)
+        protected virtual InternalRelationshipBuilder WithManyBuilder([CanBeNull] string collection)
         {
             var needToInvert = Builder.Metadata.PrincipalEntityType != RelatedEntityType;
 
@@ -106,7 +106,7 @@ namespace Microsoft.Data.Entity.Metadata.Builders
 
             builder = builder.Unique(false, ConfigurationSource.Explicit);
 
-            return builder.PrincipalToDependent(collection, ConfigurationSource.Explicit, strictPreferExisting: true);
+            return builder.PrincipalToDependent(collection, ConfigurationSource.Explicit, strictPrincipal: true);
         }
 
         /// <summary>
@@ -117,29 +117,20 @@ namespace Microsoft.Data.Entity.Metadata.Builders
         ///     If null, there is no navigation property on the other end of the relationship.
         /// </param>
         /// <returns> An object to further configure the relationship. </returns>
-        public virtual ReferenceReferenceBuilder InverseReference([CanBeNull] string reference = null)
-            => new ReferenceReferenceBuilder(InverseReferenceBuilder(reference));
+        public virtual ReferenceReferenceBuilder WithOne([CanBeNull] string reference = null)
+            => new ReferenceReferenceBuilder(WithOneBuilder(reference));
 
         /// <summary>
-        ///     Returns the internal builder to be used when <see cref="InverseReference" /> is called.
+        ///     Returns the internal builder to be used when <see cref="WithOne" /> is called.
         /// </summary>
         /// <param name="reference">
         ///     The name of the reference navigation property on the other end of this relationship.
         ///     If null, there is no navigation property on the other end of the relationship.
         /// </param>
         /// <returns> The internal builder to further configure the relationship. </returns>
-        protected virtual InternalRelationshipBuilder InverseReferenceBuilder([CanBeNull] string reference)
+        protected virtual InternalRelationshipBuilder WithOneBuilder([CanBeNull] string reference)
         {
-            var builder = Builder;
-            // TODO: Remove this when #1924 is fixed
-            if (!((IForeignKey)Builder.Metadata).IsUnique)
-            {
-                Debug.Assert(Builder.Metadata.DependentToPrincipal?.Name == ReferenceName);
-
-                builder = builder.PrincipalToDependent(null, ConfigurationSource.Explicit);
-            }
-
-            builder = builder.Unique(true, ConfigurationSource.Explicit);
+            var builder = Builder.Unique(true, ConfigurationSource.Explicit);
             var foreignKey = builder.Metadata;
 
             var isSelfReferencing = foreignKey.IsSelfReferencing();
@@ -157,8 +148,8 @@ namespace Microsoft.Data.Entity.Metadata.Builders
                          || foreignKey.DependentToPrincipal?.Name == ReferenceName);
 
             return inverseToPrincipal
-                ? builder.DependentToPrincipal(reference, ConfigurationSource.Explicit, strictPreferExisting: isSelfReferencing)
-                : builder.PrincipalToDependent(reference, ConfigurationSource.Explicit, strictPreferExisting: isSelfReferencing);
+                ? builder.DependentToPrincipal(reference, ConfigurationSource.Explicit, strictPrincipal: isSelfReferencing)
+                : builder.PrincipalToDependent(reference, ConfigurationSource.Explicit, strictPrincipal: isSelfReferencing);
         }
     }
 }

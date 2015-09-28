@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Data.Entity.FunctionalTests;
@@ -138,13 +137,13 @@ namespace Microsoft.Data.Entity.Sqlite.FunctionalTests
 
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
-                modelBuilder.Entity<Pegasus>().Key(e => new { e.Id1, e.Id2 });
+                modelBuilder.Entity<Pegasus>().HasKey(e => new { e.Id1, e.Id2 });
 
                 modelBuilder.Entity<EarthPony>(b =>
-                {
-                    b.Key(e => new { e.Id1, e.Id2});
-                    b.Property(e => e.Id1);
-                });
+                    {
+                        b.HasKey(e => new { e.Id1, e.Id2 });
+                        b.Property(e => e.Id1);
+                    });
             }
         }
 
@@ -154,7 +153,6 @@ namespace Microsoft.Data.Entity.Sqlite.FunctionalTests
             public long Id2 { get; set; }
             public string Name { get; set; }
         }
-
 
         private class EarthPony
         {

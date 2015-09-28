@@ -10,7 +10,6 @@ using JetBrains.Annotations;
 using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Metadata.Builders;
 using Microsoft.Data.Entity.Metadata.Conventions.Internal;
-using Microsoft.Data.Entity.Relational.Design.Templating;
 using Microsoft.Data.Entity.Relational.Design.Utilities;
 using Microsoft.Data.Entity.Utilities;
 
@@ -18,7 +17,8 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
 {
     public abstract class ModelConfiguration
     {
-        protected const string DefaultDbContextName = "ModelContext";
+        protected const string DbContextSuffix = "Context";
+        protected const string DefaultDbContextName = "Model" + DbContextSuffix;
         protected static readonly KeyDiscoveryConvention _keyDiscoveryConvention = new KeyDiscoveryConvention();
         protected static readonly KeyConvention _keyConvention = new KeyConvention();
 
@@ -28,7 +28,7 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
         public ModelConfiguration(
             [NotNull] IModel model,
             [NotNull] CustomConfiguration customConfiguration,
-            [NotNull] IRelationalMetadataExtensionProvider extensionsProvider,
+            [NotNull] IRelationalAnnotationProvider extensionsProvider,
             [NotNull] CSharpUtilities cSharpUtilities,
             [NotNull] ModelUtilities modelUtilities)
         {
@@ -46,7 +46,7 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
         }
 
         public virtual IModel Model { get;[param: NotNull] private set; }
-        public virtual IRelationalMetadataExtensionProvider ExtensionsProvider { get; private set; }
+        public virtual IRelationalAnnotationProvider ExtensionsProvider { get; private set; }
         public virtual CSharpUtilities CSharpUtilities { get;[param: NotNull] private set; }
         public virtual ModelUtilities ModelUtilities { get;[param: NotNull] private set; }
         public virtual CustomConfiguration CustomConfiguration { get;[param: NotNull] set; }
@@ -54,7 +54,6 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
         public abstract string UseMethodName { get; } // "UseSqlServer" for SqlServer, "UseSqlite" for Sqlite etc
         public virtual string DefaultSchemaName { get; } // e.g. "dbo for SqlServer. Leave null if there is no concept of a default schema.
         public virtual string ClassName() => DefaultDbContextName;
-
         public virtual string Namespace() => CustomConfiguration.Namespace;
 
         public virtual List<OptionsBuilderConfiguration> OnConfiguringConfigurations
@@ -179,9 +178,9 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
                 && ExtensionsProvider.For(entityType).Schema != DefaultSchemaName)
             {
                 var delimitedTableName =
-                    CSharpUtilities.Instance.DelimitString(ExtensionsProvider.For(entityType).TableName);
+                    CSharpUtilities.DelimitString(ExtensionsProvider.For(entityType).TableName);
                 var delimitedSchemaName =
-                    CSharpUtilities.Instance.DelimitString(ExtensionsProvider.For(entityType).Schema);
+                    CSharpUtilities.DelimitString(ExtensionsProvider.For(entityType).Schema);
                 entityConfiguration.FluentApiConfigurations.Add(
                     new FluentApiConfiguration(
                         nameof(RelationalEntityTypeBuilderExtensions.ToTable),
@@ -200,7 +199,7 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
                      && ExtensionsProvider.For(entityType).TableName != entityType.DisplayName())
             {
                 var delimitedTableName =
-                    CSharpUtilities.Instance.DelimitString(ExtensionsProvider.For(entityType).TableName);
+                    CSharpUtilities.DelimitString(ExtensionsProvider.For(entityType).TableName);
                 entityConfiguration.FluentApiConfigurations.Add(
                     new FluentApiConfiguration(
                         nameof(RelationalEntityTypeBuilderExtensions.ToTable),
@@ -241,7 +240,7 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
                 if (!entityKeyProperties.Contains(propertyConfiguration.Property))
                 {
                     propertyConfiguration.FluentApiConfigurations.Add(
-                        new FluentApiConfiguration(nameof(PropertyBuilder.Required))
+                        new FluentApiConfiguration(nameof(PropertyBuilder.IsRequired))
                         {
                             HasAttributeEquivalent = true
                         });
@@ -259,10 +258,10 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
             if (((Property)propertyConfiguration.Property).GetMaxLength().HasValue)
             {
                 var maxLengthLiteral =
-                    CSharpUtilities.Instance.GenerateLiteral(
+                    CSharpUtilities.GenerateLiteral(
                         ((Property)propertyConfiguration.Property).GetMaxLength().Value);
                 propertyConfiguration.FluentApiConfigurations.Add(
-                    new FluentApiConfiguration(nameof(PropertyBuilder.MaxLength), maxLengthLiteral)
+                    new FluentApiConfiguration(nameof(PropertyBuilder.HasMaxLength), maxLengthLiteral)
                     {
                         HasAttributeEquivalent = true
                     });
@@ -282,7 +281,7 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
                 case ValueGenerated.OnAdd:
                     // If this property is the single integer primary key on the EntityType then
                     // KeyConvention assumes ValueGeneratedOnAdd() so there is no need to add it.
-                    if (_keyConvention.ValueGeneratedOnAddProperty(
+                    if (_keyConvention.FindValueGeneratedOnAddProperty(
                         new List<Property> { (Property)propertyConfiguration.Property },
                         (EntityType)propertyConfiguration.EntityConfiguration.EntityType) == null)
                     {
@@ -308,13 +307,13 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
             var delimitedColumnName = 
                 ExtensionsProvider.For(propertyConfiguration.Property).ColumnName != null
                 && ExtensionsProvider.For(propertyConfiguration.Property).ColumnName != propertyConfiguration.Property.Name
-                ? CSharpUtilities.Instance.DelimitString(
+                ? CSharpUtilities.DelimitString(
                     ExtensionsProvider.For(propertyConfiguration.Property).ColumnName)
                 : null;
 
             var delimitedColumnTypeName = 
                 ExtensionsProvider.For(propertyConfiguration.Property).ColumnType != null
-                ? CSharpUtilities.Instance.DelimitString(
+                ? CSharpUtilities.DelimitString(
                         ExtensionsProvider.For(propertyConfiguration.Property).ColumnType)
                 : null;
 
@@ -370,7 +369,7 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
                 propertyConfiguration.FluentApiConfigurations.Add(
                     new FluentApiConfiguration(
                         nameof(RelationalPropertyBuilderExtensions.HasDefaultValue),
-                        CSharpUtilities.Instance.GenerateLiteral(
+                        CSharpUtilities.GenerateLiteral(
                             (dynamic)ExtensionsProvider.For(propertyConfiguration.Property).DefaultValue)));
             }
         }
@@ -385,7 +384,7 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
                 propertyConfiguration.FluentApiConfigurations.Add(
                     new FluentApiConfiguration(
                         nameof(RelationalPropertyBuilderExtensions.HasDefaultValueSql),
-                        CSharpUtilities.Instance.DelimitString(
+                        CSharpUtilities.DelimitString(
                             ExtensionsProvider.For(propertyConfiguration.Property).GeneratedValueSql)));
             }
         }

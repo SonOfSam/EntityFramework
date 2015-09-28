@@ -12,6 +12,7 @@ using Microsoft.Data.Entity.Query.ExpressionVisitors;
 using Microsoft.Data.Entity.Query.Internal;
 using Microsoft.Data.Entity.Query.Sql;
 using Microsoft.Data.Entity.Update;
+using Microsoft.Data.Entity.Update.Internal;
 using Microsoft.Data.Entity.ValueGeneration;
 
 namespace Microsoft.Data.Entity.Storage
@@ -43,16 +44,17 @@ namespace Microsoft.Data.Entity.Storage
         public virtual ISqlStatementExecutor SqlStatementExecutor => GetService<SqlStatementExecutor>();
         public virtual IParameterNameGeneratorFactory ParameterNameGeneratorFactory => GetService<ParameterNameGeneratorFactory>();
         public virtual IMigrationsSqlGenerator MigrationsSqlGenerator => GetService<MigrationsSqlGenerator>();
+        public virtual IExpressionFragmentTranslator CompositeExpressionFragmentTranslator => GetService<RelationalCompositeExpressionFragmentTranslator>();
 
         public abstract IMethodCallTranslator CompositeMethodCallTranslator { get; }
         public abstract IMemberTranslator CompositeMemberTranslator { get; }
-        public abstract IExpressionFragmentTranslator CompositeExpressionFragmentTranslator { get; }
         public abstract IHistoryRepository HistoryRepository { get; }
         public abstract IRelationalConnection RelationalConnection { get; }
+        public abstract ISqlGenerator SqlGenerator { get; }
         public abstract IUpdateSqlGenerator UpdateSqlGenerator { get; }
         public abstract IModificationCommandBatchFactory ModificationCommandBatchFactory { get; }
         public abstract IRelationalDatabaseCreator RelationalDatabaseCreator { get; }
-        public abstract IRelationalMetadataExtensionProvider MetadataExtensionProvider { get; }
+        public abstract IRelationalAnnotationProvider AnnotationProvider { get; }
         public abstract ISqlQueryGeneratorFactory SqlQueryGeneratorFactory { get; }
     }
 }

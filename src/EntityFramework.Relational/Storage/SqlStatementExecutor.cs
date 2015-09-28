@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Data.Entity.Internal;
-using Microsoft.Data.Entity.Storage.Commands;
 using Microsoft.Data.Entity.Utilities;
 using Microsoft.Framework.Logging;
 
@@ -16,30 +15,25 @@ namespace Microsoft.Data.Entity.Storage
 {
     public class SqlStatementExecutor : ISqlStatementExecutor
     {
+        private readonly IRelationalCommandBuilderFactory _commandBuilderFactory;
         private readonly LazyRef<ILogger> _logger;
-        private readonly IRelationalTypeMapper _typeMapper;
 
         public SqlStatementExecutor(
-            [NotNull] ILoggerFactory loggerFactory,
-            [NotNull] IRelationalTypeMapper typeMapper)
+            [NotNull] IRelationalCommandBuilderFactory commandBuilderFactory,
+            [NotNull] ILoggerFactory loggerFactory)
         {
+            Check.NotNull(commandBuilderFactory, nameof(commandBuilderFactory));
             Check.NotNull(loggerFactory, nameof(loggerFactory));
-            Check.NotNull(typeMapper, nameof(typeMapper));
 
+            _commandBuilderFactory = commandBuilderFactory;
             _logger = new LazyRef<ILogger>(loggerFactory.CreateLogger<SqlStatementExecutor>);
-            _typeMapper = typeMapper;
         }
 
         protected virtual ILogger Logger => _logger.Value;
 
         public virtual void ExecuteNonQuery(
-            [NotNull] IRelationalConnection connection,
-            [NotNull] RelationalCommand relationalCommand)
-            => ExecuteNonQuery(connection, new[] { relationalCommand });
-
-        public virtual void ExecuteNonQuery(
-            [NotNull] IRelationalConnection connection,
-            [NotNull] IEnumerable<RelationalCommand> relationalCommands)
+            IRelationalConnection connection,
+            IEnumerable<RelationalCommand> relationalCommands)
         {
             Check.NotNull(connection, nameof(connection));
             Check.NotNull(relationalCommands, nameof(relationalCommands));
@@ -62,21 +56,15 @@ namespace Microsoft.Data.Entity.Storage
             }
         }
 
-        public virtual Task ExecuteNonQueryAsync(
-            [NotNull] IRelationalConnection connection,
-            [NotNull] RelationalCommand relationalCommand,
-            CancellationToken cancellationToken = default(CancellationToken))
-            => ExecuteNonQueryAsync(connection, new[] { relationalCommand }, cancellationToken);
-
         public virtual async Task ExecuteNonQueryAsync(
-            [NotNull] IRelationalConnection connection,
-            [NotNull] IEnumerable<RelationalCommand> relationalCommands,
+            IRelationalConnection connection,
+            IEnumerable<RelationalCommand> relationalCommands,
             CancellationToken cancellationToken = default(CancellationToken))
         {
             Check.NotNull(connection, nameof(connection));
             Check.NotNull(relationalCommands, nameof(relationalCommands));
 
-            await connection.OpenAsync();
+            await connection.OpenAsync(cancellationToken);
 
             try
             {
@@ -96,21 +84,21 @@ namespace Microsoft.Data.Entity.Storage
         }
 
         public virtual object ExecuteScalar(
-            [NotNull] IRelationalConnection connection,
-            [NotNull] string sql)
+            IRelationalConnection connection,
+            string sql)
         {
             Check.NotNull(connection, nameof(connection));
             Check.NotEmpty(sql, nameof(sql));
 
             return Execute(
                 connection,
-                new RelationalCommand(sql),
+                CreateCommand(sql),
                 c => c.ExecuteScalar());
         }
 
         public virtual Task<object> ExecuteScalarAsync(
-            [NotNull] IRelationalConnection connection,
-            [NotNull] string sql,
+            IRelationalConnection connection,
+            string sql,
             CancellationToken cancellationToken = default(CancellationToken))
         {
             Check.NotNull(connection, nameof(connection));
@@ -118,27 +106,27 @@ namespace Microsoft.Data.Entity.Storage
 
             return ExecuteAsync(
                 connection,
-                new RelationalCommand(sql),
+                CreateCommand(sql),
                 c => c.ExecuteScalarAsync(cancellationToken),
                 cancellationToken);
         }
 
         public virtual DbDataReader ExecuteReader(
-            [NotNull] IRelationalConnection connection,
-            [NotNull] string sql)
+            IRelationalConnection connection,
+            string sql)
         {
             Check.NotNull(connection, nameof(connection));
             Check.NotEmpty(sql, nameof(sql));
 
             return Execute(
                 connection,
-                new RelationalCommand(sql),
+                CreateCommand(sql),
                 c => c.ExecuteReader());
         }
 
         public virtual Task<DbDataReader> ExecuteReaderAsync(
-            [NotNull] IRelationalConnection connection,
-            [NotNull] string sql,
+            IRelationalConnection connection,
+            string sql,
             CancellationToken cancellationToken = default(CancellationToken))
         {
             Check.NotNull(connection, nameof(connection));
@@ -146,7 +134,7 @@ namespace Microsoft.Data.Entity.Storage
 
             return ExecuteAsync(
                 connection,
-                new RelationalCommand(sql),
+                CreateCommand(sql),
                 c => c.ExecuteReaderAsync(cancellationToken),
                 cancellationToken);
         }
@@ -161,7 +149,7 @@ namespace Microsoft.Data.Entity.Storage
 
             try
             {
-                using (var dbCommand = command.CreateDbCommand(connection, _typeMapper))
+                using (var dbCommand = command.CreateCommand(connection))
                 {
                     Logger.LogCommand(dbCommand);
 
@@ -184,7 +172,7 @@ namespace Microsoft.Data.Entity.Storage
 
             try
             {
-                using (var dbCommand = command.CreateDbCommand(connection, _typeMapper))
+                using (var dbCommand = command.CreateCommand(connection))
                 {
                     Logger.LogCommand(dbCommand);
 
@@ -196,5 +184,10 @@ namespace Microsoft.Data.Entity.Storage
                 connection.Close();
             }
         }
+
+        private RelationalCommand CreateCommand(string sql)
+            => _commandBuilderFactory.Create()
+                .Append(sql)
+                .BuildRelationalCommand();
     }
 }

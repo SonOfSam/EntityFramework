@@ -10,6 +10,7 @@ using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Metadata.Conventions;
 using Microsoft.Data.Entity.Storage;
 using Microsoft.Data.Entity.Update;
+using Microsoft.Data.Entity.Update.Internal;
 using Microsoft.Framework.DependencyInjection;
 using Moq;
 using Xunit;
@@ -228,13 +229,13 @@ namespace Microsoft.Data.Entity.Tests.Update
             commandBatchesEnumerator.MoveNext();
 
             modificationCommandBatchFactoryMock.Verify(
-                mcb => mcb.Create(options, It.IsAny<IRelationalMetadataExtensionProvider>()),
+                mcb => mcb.Create(options, It.IsAny<IRelationalAnnotationProvider>()),
                 Times.Once);
 
             commandBatchesEnumerator.MoveNext();
 
             modificationCommandBatchFactoryMock.Verify(
-                mcb => mcb.Create(options, It.IsAny<IRelationalMetadataExtensionProvider>()),
+                mcb => mcb.Create(options, It.IsAny<IRelationalAnnotationProvider>()),
                 Times.Exactly(2));
         }
 
@@ -264,7 +265,7 @@ namespace Microsoft.Data.Entity.Tests.Update
         {
             var optionsBuilder = new DbContextOptionsBuilder()
                 .UseModel(model);
-            optionsBuilder.UseInMemoryDatabase(persist: false);
+            optionsBuilder.UseInMemoryDatabase();
 
             return new DbContext(optionsBuilder.Options).GetService();
         }
@@ -273,13 +274,14 @@ namespace Microsoft.Data.Entity.Tests.Update
         {
             modificationCommandBatchFactory =
                 modificationCommandBatchFactory ?? new TestModificationCommandBatchFactory(
+                    Mock.Of<IRelationalCommandBuilderFactory>(),
                     Mock.Of<IUpdateSqlGenerator>());
 
             return new TestCommandBatchPreparer(modificationCommandBatchFactory,
                 new ParameterNameGeneratorFactory(),
                 new ModificationCommandComparer(),
                 Mock.Of<IRelationalValueBufferFactoryFactory>(),
-                new TestMetadataExtensionProvider());
+                new TestAnnotationProvider());
         }
 
         private static IModel CreateSimpleFKModel()
@@ -288,15 +290,15 @@ namespace Microsoft.Data.Entity.Tests.Update
 
             modelBuilder.Entity<FakeEntity>(b =>
                 {
-                    b.Key(c => c.Id);
+                    b.HasKey(c => c.Id);
                     b.Property(c => c.Value);
                 });
 
             modelBuilder.Entity<RelatedFakeEntity>(b =>
                 {
-                    b.Key(c => c.Id);
-                    b.Reference<FakeEntity>()
-                        .InverseReference()
+                    b.HasKey(c => c.Id);
+                    b.HasOne<FakeEntity>()
+                        .WithOne()
                         .ForeignKey<RelatedFakeEntity>(c => c.Id);
                 });
 
@@ -309,22 +311,22 @@ namespace Microsoft.Data.Entity.Tests.Update
 
             modelBuilder.Entity<FakeEntity>(b =>
                 {
-                    b.Key(c => c.Id);
+                    b.HasKey(c => c.Id);
                     b.Property(c => c.Value);
                 });
 
             modelBuilder.Entity<RelatedFakeEntity>(b =>
                 {
-                    b.Key(c => c.Id);
-                    b.Reference<FakeEntity>()
-                        .InverseReference()
+                    b.HasKey(c => c.Id);
+                    b.HasOne<FakeEntity>()
+                        .WithOne()
                         .ForeignKey<RelatedFakeEntity>(c => c.RelatedId);
                 });
 
             modelBuilder
                 .Entity<FakeEntity>()
-                .Reference<RelatedFakeEntity>()
-                .InverseReference()
+                .HasOne<RelatedFakeEntity>()
+                .WithOne()
                 .ForeignKey<FakeEntity>(c => c.RelatedId);
 
             return modelBuilder.Model;
@@ -350,13 +352,13 @@ namespace Microsoft.Data.Entity.Tests.Update
                 IParameterNameGeneratorFactory parameterNameGeneratorFactory,
                 IComparer<ModificationCommand> modificationCommandComparer,
                 IRelationalValueBufferFactoryFactory valueBufferFactoryFactory,
-                IRelationalMetadataExtensionProvider metadataExtensionProvider)
+                IRelationalAnnotationProvider annotationProvider)
                 : base(
                       modificationCommandBatchFactory,
                       parameterNameGeneratorFactory,
                       modificationCommandComparer,
                       valueBufferFactoryFactory,
-                      metadataExtensionProvider)
+                      annotationProvider)
             {
             }
         }
@@ -364,16 +366,17 @@ namespace Microsoft.Data.Entity.Tests.Update
         private class TestModificationCommandBatchFactory : ModificationCommandBatchFactory
         {
             public TestModificationCommandBatchFactory(
+                IRelationalCommandBuilderFactory commandBuilderfactory,
                 IUpdateSqlGenerator sqlGenerator)
-                : base(sqlGenerator)
+                : base(commandBuilderfactory, sqlGenerator)
             {
             }
 
             public override ModificationCommandBatch Create(
                 IDbContextOptions options,
-                IRelationalMetadataExtensionProvider metadataExtensionProvider)
+                IRelationalAnnotationProvider annotationProvider)
             {
-                return new SingularModificationCommandBatch(UpdateSqlGenerator);
+                return new SingularModificationCommandBatch(CommandBuilderFactory, UpdateSqlGenerator);
             }
         }
     }

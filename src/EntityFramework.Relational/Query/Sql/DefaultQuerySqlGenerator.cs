@@ -4,17 +4,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Data;
 using System.Data.Common;
-using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
 using JetBrains.Annotations;
 using Microsoft.Data.Entity.Query.Expressions;
 using Microsoft.Data.Entity.Query.ExpressionVisitors;
+using Microsoft.Data.Entity.Query.ExpressionVisitors.Internal;
 using Microsoft.Data.Entity.Storage;
-using Microsoft.Data.Entity.Storage.Commands;
 using Microsoft.Data.Entity.Utilities;
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Parsing;
@@ -23,6 +20,8 @@ namespace Microsoft.Data.Entity.Query.Sql
 {
     public class DefaultQuerySqlGenerator : ThrowingExpressionVisitor, ISqlExpressionVisitor, ISqlQueryGenerator
     {
+        private readonly IRelationalCommandBuilderFactory _commandBuilderFactory;
+        private readonly ISqlGenerator _sqlGenerator;
         private readonly IParameterNameGeneratorFactory _parameterNameGeneratorFactory;
 
         private RelationalCommandBuilder _sql;
@@ -46,31 +45,39 @@ namespace Microsoft.Data.Entity.Query.Sql
         };
 
         public DefaultQuerySqlGenerator(
+            [NotNull] IRelationalCommandBuilderFactory commandBuilderFactory,
+            [NotNull] ISqlGenerator sqlGenerator,
             [NotNull] IParameterNameGeneratorFactory parameterNameGeneratorFactory,
             [NotNull] SelectExpression selectExpression)
         {
+            Check.NotNull(commandBuilderFactory, nameof(commandBuilderFactory));
+            Check.NotNull(sqlGenerator, nameof(sqlGenerator));
             Check.NotNull(parameterNameGeneratorFactory, nameof(parameterNameGeneratorFactory));
             Check.NotNull(selectExpression, nameof(selectExpression));
 
+            _commandBuilderFactory = commandBuilderFactory;
+            _sqlGenerator = sqlGenerator;
             _parameterNameGeneratorFactory = parameterNameGeneratorFactory;
             SelectExpression = selectExpression;
         }
 
         protected virtual SelectExpression SelectExpression { get; }
 
+        protected virtual ISqlGenerator SqlGenerator => _sqlGenerator;
+
         protected virtual ParameterNameGenerator ParameterNameGenerator => _parameterNameGenerator;
 
-        public virtual RelationalCommand GenerateSql([NotNull] IDictionary<string, object> parameterValues)
+        public virtual RelationalCommand GenerateSql(IDictionary<string, object> parameterValues)
         {
             Check.NotNull(parameterValues, nameof(parameterValues));
 
-            _sql = new RelationalCommandBuilder();
+            _sql =  _commandBuilderFactory.Create();
             _parameterNameGenerator = _parameterNameGeneratorFactory.Create();
             _parameterValues = parameterValues;
 
             Visit(SelectExpression);
 
-            return _sql.RelationalCommand;
+            return _sql.BuildRelationalCommand();
         }
 
         public virtual IRelationalValueBufferFactory CreateValueBufferFactory(
@@ -112,16 +119,25 @@ namespace Microsoft.Data.Entity.Query.Sql
 
             GenerateTop(selectExpression);
 
+            var projectionAdded = false;
+            if (selectExpression.IsProjectStar)
+            {
+                _sql.Append(_sqlGenerator.DelimitIdentifier(selectExpression.Tables.Single().Alias))
+                    .Append(".*");
+                projectionAdded = true;
+            }
+
             if (selectExpression.Projection.Any())
             {
+                if (selectExpression.IsProjectStar)
+                {
+                    _sql.Append(", ");
+                }
                 VisitJoin(selectExpression.Projection);
+                projectionAdded = true;
             }
-            else if (selectExpression.IsProjectStar)
-            {
-                _sql.Append(DelimitIdentifier(selectExpression.Tables.Single().Alias))
-                    .Append(".*");
-            }
-            else
+
+            if (!projectionAdded)
             {
                 _sql.Append("1");
             }
@@ -183,42 +199,8 @@ namespace Microsoft.Data.Entity.Query.Sql
 
             if (selectExpression.OrderBy.Any())
             {
-                _sql.AppendLine()
-                    .Append("ORDER BY ");
-
-                VisitJoin(selectExpression.OrderBy, t =>
-                    {
-                        var aliasExpression = t.Expression as AliasExpression;
-
-                        if (aliasExpression != null)
-                        {
-                            if (aliasExpression.Alias != null)
-                            {
-                                var columnExpression = aliasExpression.TryGetColumnExpression();
-
-                                if (columnExpression != null)
-                                {
-                                    _sql.Append(DelimitIdentifier(columnExpression.TableAlias))
-                                        .Append(".");
-                                }
-
-                                _sql.Append(DelimitIdentifier(aliasExpression.Alias));
-                            }
-                            else
-                            {
-                                Visit(aliasExpression.Expression);
-                            }
-                        }
-                        else
-                        {
-                            Visit(t.Expression);
-                        }
-
-                        if (t.OrderingDirection == OrderingDirection.Desc)
-                        {
-                            _sql.Append(" DESC");
-                        }
-                    });
+                _sql.AppendLine();
+                GenerateOrderBy(selectExpression.OrderBy);
             }
 
             GenerateLimitOffset(selectExpression);
@@ -233,11 +215,50 @@ namespace Microsoft.Data.Entity.Query.Sql
                 if (selectExpression.Alias.Length > 0)
                 {
                     _sql.Append(" AS ")
-                        .Append(DelimitIdentifier(selectExpression.Alias));
+                        .Append(_sqlGenerator.DelimitIdentifier(selectExpression.Alias));
                 }
             }
 
             return selectExpression;
+        }
+
+        protected virtual void GenerateOrderBy([NotNull] IReadOnlyList<Ordering> orderings)
+        {
+            _sql.Append("ORDER BY ");
+
+            VisitJoin(orderings, t =>
+                {
+                    var aliasExpression = t.Expression as AliasExpression;
+
+                    if (aliasExpression != null)
+                    {
+                        if (aliasExpression.Alias != null)
+                        {
+                            var columnExpression = aliasExpression.TryGetColumnExpression();
+
+                            if (columnExpression != null)
+                            {
+                                _sql.Append(_sqlGenerator.DelimitIdentifier(columnExpression.TableAlias))
+                                    .Append(".");
+                            }
+
+                            _sql.Append(_sqlGenerator.DelimitIdentifier(aliasExpression.Alias));
+                        }
+                        else
+                        {
+                            Visit(aliasExpression.Expression);
+                        }
+                    }
+                    else
+                    {
+                        Visit(t.Expression);
+                    }
+
+                    if (t.OrderingDirection == OrderingDirection.Desc)
+                    {
+                        _sql.Append(" DESC");
+                    }
+                });
         }
 
         private void VisitJoin(
@@ -274,17 +295,18 @@ namespace Microsoft.Data.Entity.Query.Sql
                 {
                     substitutions[index] = ParameterNameGenerator.GenerateNext();
 
-                    _sql.RelationalParameterList.GetOrAdd(
+                    _sql.AddParameter(
                         substitutions[index],
                         rawSqlDerivedTableExpression.Parameters[index]);
                 }
 
                 _sql.AppendLines(
+                    // ReSharper disable once CoVariantArrayConversion
                     string.Format(rawSqlDerivedTableExpression.Sql, substitutions));
             }
 
             _sql.Append(") AS ")
-                .Append(DelimitIdentifier(rawSqlDerivedTableExpression.Alias));
+                .Append(_sqlGenerator.DelimitIdentifier(rawSqlDerivedTableExpression.Alias));
 
             return rawSqlDerivedTableExpression;
         }
@@ -295,13 +317,13 @@ namespace Microsoft.Data.Entity.Query.Sql
 
             if (tableExpression.Schema != null)
             {
-                _sql.Append(DelimitIdentifier(tableExpression.Schema))
+                _sql.Append(_sqlGenerator.DelimitIdentifier(tableExpression.Schema))
                     .Append(".");
             }
 
-            _sql.Append(DelimitIdentifier(tableExpression.Table))
+            _sql.Append(_sqlGenerator.DelimitIdentifier(tableExpression.Table))
                 .Append(" AS ")
-                .Append(DelimitIdentifier(tableExpression.Alias));
+                .Append(_sqlGenerator.DelimitIdentifier(tableExpression.Alias));
 
             return tableExpression;
         }
@@ -613,17 +635,11 @@ namespace Microsoft.Data.Entity.Query.Sql
 
             using (_sql.Indent())
             {
-                _sql.AppendLine("WHEN");
+                _sql.Append("WHEN ");
 
-                using (_sql.Indent())
-                {
-                    _sql.Append("(");
+                Visit(expression.Test);
 
-                    Visit(expression.Test);
-
-                    _sql.AppendLine(")");
-                }
-
+                _sql.AppendLine();
                 _sql.Append("THEN ");
 
                 var constantIfTrue = expression.IfTrue as ConstantExpression;
@@ -671,7 +687,7 @@ namespace Microsoft.Data.Entity.Query.Sql
                 Visit(existsExpression.Expression);
             }
 
-            _sql.AppendLine(")");
+            _sql.Append(")");
 
             return existsExpression;
         }
@@ -690,17 +706,19 @@ namespace Microsoft.Data.Entity.Query.Sql
             }
             else
             {
-                var needParentheses
-                    = !binaryExpression.Left.IsSimpleExpression()
-                      || !binaryExpression.Right.IsSimpleExpression()
-                      || binaryExpression.IsLogicalOperation();
+                var needParens = binaryExpression.Left is BinaryExpression;
 
-                if (needParentheses)
+                if (needParens)
                 {
                     _sql.Append("(");
                 }
 
                 Visit(binaryExpression.Left);
+
+                if (needParens)
+                {
+                    _sql.Append(")");
+                }
 
                 if (binaryExpression.IsLogicalOperation()
                     && binaryExpression.Left.IsSimpleExpression())
@@ -715,8 +733,7 @@ namespace Microsoft.Data.Entity.Query.Sql
                     switch (binaryExpression.NodeType)
                     {
                         case ExpressionType.Add:
-                            op = (binaryExpression.Left.Type == typeof(string)
-                                  && binaryExpression.Right.Type == typeof(string))
+                            op = binaryExpression.Type == typeof(string)
                                 ? " " + ConcatOperator + " "
                                 : " + ";
                             break;
@@ -727,18 +744,25 @@ namespace Microsoft.Data.Entity.Query.Sql
 
                 _sql.Append(op);
 
+                needParens = binaryExpression.Right is BinaryExpression;
+
+                if (needParens)
+                {
+                    _sql.Append("(");
+                }
+
                 Visit(binaryExpression.Right);
+
+                if (needParens)
+                {
+                    _sql.Append(")");
+                }
 
                 if (binaryExpression.IsLogicalOperation()
                     && binaryExpression.Right.IsSimpleExpression())
                 {
                     _sql.Append(" = ");
                     _sql.Append(TrueLiteral);
-                }
-
-                if (needParentheses)
-                {
-                    _sql.Append(")");
                 }
             }
 
@@ -749,9 +773,9 @@ namespace Microsoft.Data.Entity.Query.Sql
         {
             Check.NotNull(columnExpression, nameof(columnExpression));
 
-            _sql.Append(DelimitIdentifier(columnExpression.TableAlias))
+            _sql.Append(_sqlGenerator.DelimitIdentifier(columnExpression.TableAlias))
                 .Append(".")
-                .Append(DelimitIdentifier(columnExpression.Name));
+                .Append(_sqlGenerator.DelimitIdentifier(columnExpression.Name));
 
             return columnExpression;
         }
@@ -772,7 +796,7 @@ namespace Microsoft.Data.Entity.Query.Sql
 
             if (aliasExpression.Alias != null)
             {
-                _sql.Append(DelimitIdentifier(aliasExpression.Alias));
+                _sql.Append(_sqlGenerator.DelimitIdentifier(aliasExpression.Alias));
             }
 
             return aliasExpression;
@@ -817,7 +841,7 @@ namespace Microsoft.Data.Entity.Query.Sql
         {
             Check.NotNull(literalExpression, nameof(literalExpression));
 
-            _sql.Append(GenerateLiteral(literalExpression.Literal));
+            _sql.Append(_sqlGenerator.GenerateLiteral(literalExpression.Literal));
 
             return literalExpression;
         }
@@ -889,7 +913,7 @@ namespace Microsoft.Data.Entity.Query.Sql
 
             _sql.Append(constantExpression.Value == null
                 ? "NULL"
-                : GenerateLiteral((dynamic)constantExpression.Value));
+                : _sqlGenerator.GenerateLiteral(constantExpression.Value));
 
             return constantExpression;
         }
@@ -908,106 +932,18 @@ namespace Microsoft.Data.Entity.Query.Sql
 
             _sql.Append(name);
 
-            _sql.RelationalParameterList.GetOrAdd(name, value);
+            _sql.AddParameter(name, value, parameterExpression.Type);
 
             return parameterExpression;
         }
 
-        protected virtual bool TryGenerateBinaryOperator(ExpressionType op, [NotNull] out string result)
-        {
-            return _binaryOperatorMap.TryGetValue(op, out result);
-        }
+        protected virtual bool TryGenerateBinaryOperator(ExpressionType op, [NotNull] out string result) 
+            => _binaryOperatorMap.TryGetValue(op, out result);
 
-        protected virtual string GenerateBinaryOperator(ExpressionType op)
-        {
-            return _binaryOperatorMap[op];
-        }
+        protected virtual string GenerateBinaryOperator(ExpressionType op) => _binaryOperatorMap[op];
 
         protected override Exception CreateUnhandledItemException<T>(T unhandledItem, string visitMethod)
             => new NotImplementedException(visitMethod);
-
-        // TODO: Share the code below (#1559)
-
-        private const string DateTimeFormat = "yyyy-MM-ddTHH:mm:ss.fffK";
-        private const string DateTimeOffsetFormat = "yyyy-MM-ddTHH:mm:ss.fffzzz";
-        private const string FloatingPointFormat = "{0}E0";
-
-        protected virtual string GenerateLiteral([NotNull] object value)
-            => string.Format(CultureInfo.InvariantCulture, "{0}", value);
-
-        protected virtual string GenerateLiteral([NotNull] Enum value)
-            => string.Format(CultureInfo.InvariantCulture, "{0:d}", value);
-
-        private readonly Dictionary<DbType, string> _dbTypeNameMapping = new Dictionary<DbType, string>
-        {
-            { DbType.Byte, "tinyint" },
-            { DbType.Decimal, "decimal" },
-            { DbType.Double, "float" },
-            { DbType.Int16, "smallint" },
-            { DbType.Int32, "int" },
-            { DbType.Int64, "bigint" },
-            { DbType.String, "nvarchar" },
-        };
-
-        protected virtual string GenerateLiteral(DbType value)
-            => _dbTypeNameMapping[value];
-
-        protected virtual string GenerateLiteral(int value)
-            => value.ToString();
-
-        protected virtual string GenerateLiteral(short value)
-            => value.ToString();
-
-        protected virtual string GenerateLiteral(long value)
-            => value.ToString();
-
-        protected virtual string GenerateLiteral(byte value)
-            => value.ToString();
-
-        protected virtual string GenerateLiteral(decimal value)
-            => string.Format(value.ToString(CultureInfo.InvariantCulture));
-
-        protected virtual string GenerateLiteral(double value)
-            => string.Format(CultureInfo.InvariantCulture, FloatingPointFormat, value);
-
-        protected virtual string GenerateLiteral(float value)
-            => string.Format(CultureInfo.InvariantCulture, FloatingPointFormat, value);
-
-        protected virtual string GenerateLiteral(bool value)
-            => value ? TrueLiteral : FalseLiteral;
-
-        protected virtual string GenerateLiteral([NotNull] string value)
-            => "'" + EscapeLiteral(Check.NotNull(value, nameof(value))) + "'";
-
-        protected virtual string GenerateLiteral(Guid value)
-            => "'" + value + "'";
-
-        protected virtual string GenerateLiteral(DateTime value)
-            => "'" + value.ToString(DateTimeFormat, CultureInfo.InvariantCulture) + "'";
-
-        protected virtual string GenerateLiteral(DateTimeOffset value)
-            => "'" + value.ToString(DateTimeOffsetFormat, CultureInfo.InvariantCulture) + "'";
-
-        protected virtual string GenerateLiteral(TimeSpan value)
-            => "'" + value + "'";
-
-        protected virtual string GenerateLiteral([NotNull] byte[] value)
-        {
-            var stringBuilder = new StringBuilder("0x");
-
-            foreach (var @byte in value)
-            {
-                stringBuilder.Append(@byte.ToString("X2", CultureInfo.InvariantCulture));
-            }
-
-            return stringBuilder.ToString();
-        }
-
-        protected virtual string EscapeLiteral([NotNull] string literal)
-            => Check.NotNull(literal, nameof(literal)).Replace("'", "''");
-
-        protected virtual string DelimitIdentifier([NotNull] string identifier)
-            => "\"" + Check.NotEmpty(identifier, nameof(identifier)) + "\"";
 
         private class NullComparisonTransformingVisitor : RelinqExpressionVisitor
         {

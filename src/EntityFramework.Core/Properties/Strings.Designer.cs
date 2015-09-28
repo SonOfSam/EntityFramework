@@ -5,7 +5,7 @@ namespace Microsoft.Data.Entity.Internal
     using System.Globalization;
     using System.Reflection;
     using System.Resources;
-	using JetBrains.Annotations;
+    using JetBrains.Annotations;
 
     public static class Strings
     {
@@ -349,11 +349,11 @@ namespace Microsoft.Data.Entity.Internal
         }
 
         /// <summary>
-        /// The property '{property}' cannot be added to the entity type '{entityType}' because a property with the same name already exists.
+        /// The property '{property}' cannot be added to the entity type '{entityType}' because a property with the same name already exists on entity type '{duplicateEntityType}'.
         /// </summary>
-        public static string DuplicateProperty([CanBeNull] object property, [CanBeNull] object entityType)
+        public static string DuplicateProperty([CanBeNull] object property, [CanBeNull] object entityType, [CanBeNull] object duplicateEntityType)
         {
-            return string.Format(CultureInfo.CurrentCulture, GetString("DuplicateProperty", "property", "entityType"), property, entityType);
+            return string.Format(CultureInfo.CurrentCulture, GetString("DuplicateProperty", "property", "entityType", "duplicateEntityType"), property, entityType, duplicateEntityType);
         }
 
         /// <summary>
@@ -413,11 +413,11 @@ namespace Microsoft.Data.Entity.Internal
         }
 
         /// <summary>
-        /// The navigation property '{navigation}' cannot be added to the entity type '{entityType}' because a navigation property with the same name already exists.
+        /// The navigation property '{navigation}' cannot be added to the entity type '{entityType}' because a navigation property with the same name already exists on entity type '{duplicateEntityType}'.
         /// </summary>
-        public static string DuplicateNavigation([CanBeNull] object navigation, [CanBeNull] object entityType)
+        public static string DuplicateNavigation([CanBeNull] object navigation, [CanBeNull] object entityType, [CanBeNull] object duplicateEntityType)
         {
-            return string.Format(CultureInfo.CurrentCulture, GetString("DuplicateNavigation", "navigation", "entityType"), navigation, entityType);
+            return string.Format(CultureInfo.CurrentCulture, GetString("DuplicateNavigation", "navigation", "entityType", "duplicateEntityType"), navigation, entityType, duplicateEntityType);
         }
 
         /// <summary>
@@ -477,11 +477,11 @@ namespace Microsoft.Data.Entity.Internal
         }
 
         /// <summary>
-        /// The types of the properties specified for the foreign key {foreignKey} on entity type '{dependentType}' do not match the types of the properties in the principal key on entity type '{principalType}'.
+        /// The types of the properties specified for the foreign key {foreignKey} on entity type '{dependentType}' do not match the types of the properties in the principal key {principalKey} on entity type '{principalType}'.
         /// </summary>
-        public static string ForeignKeyTypeMismatch([CanBeNull] object foreignKey, [CanBeNull] object dependentType, [CanBeNull] object principalType)
+        public static string ForeignKeyTypeMismatch([CanBeNull] object foreignKey, [CanBeNull] object dependentType, [CanBeNull] object principalKey, [CanBeNull] object principalType)
         {
-            return string.Format(CultureInfo.CurrentCulture, GetString("ForeignKeyTypeMismatch", "foreignKey", "dependentType", "principalType"), foreignKey, dependentType, principalType);
+            return string.Format(CultureInfo.CurrentCulture, GetString("ForeignKeyTypeMismatch", "foreignKey", "dependentType", "principalKey", "principalType"), foreignKey, dependentType, principalKey, principalType);
         }
 
         /// <summary>
@@ -557,27 +557,43 @@ namespace Microsoft.Data.Entity.Internal
         }
 
         /// <summary>
-        /// The foreign key {foreignKey} cannot be added to the entity type '{entityType}' because a foreign key on the same properties already exists.
+        /// The association between entity types '{firstType}' and '{secondType}' has been severed but the foreign key for this relationship cannot be set to null. If the dependent entity should be deleted, then setup the relationship to use cascade deletes.
         /// </summary>
-        public static string DuplicateForeignKey([CanBeNull] object foreignKey, [CanBeNull] object entityType)
+        public static string RelationshipConceptualNull([CanBeNull] object firstType, [CanBeNull] object secondType)
         {
-            return string.Format(CultureInfo.CurrentCulture, GetString("DuplicateForeignKey", "foreignKey", "entityType"), foreignKey, entityType);
+            return string.Format(CultureInfo.CurrentCulture, GetString("RelationshipConceptualNull", "firstType", "secondType"), firstType, secondType);
         }
 
         /// <summary>
-        /// The index {index} cannot be added to the entity type '{entityType}' because an index on the same properties already exists.
+        /// The property '{property}' on entity type '{entityType}' is marked as null, but this cannot be saved because the property is marked as required.
         /// </summary>
-        public static string DuplicateIndex([CanBeNull] object index, [CanBeNull] object entityType)
+        public static string PropertyConceptualNull([CanBeNull] object property, [CanBeNull] object entityType)
         {
-            return string.Format(CultureInfo.CurrentCulture, GetString("DuplicateIndex", "index", "entityType"), index, entityType);
+            return string.Format(CultureInfo.CurrentCulture, GetString("PropertyConceptualNull", "property", "entityType"), property, entityType);
         }
 
         /// <summary>
-        /// The key {key} cannot be added to the entity type '{entityType}' because a key on the same properties already exists.
+        /// The foreign key {foreignKey} cannot be added to the entity type '{entityType}' because a foreign key on the same properties already exists on entity type '{duplicateEntityType}'.
         /// </summary>
-        public static string DuplicateKey([CanBeNull] object key, [CanBeNull] object entityType)
+        public static string DuplicateForeignKey([CanBeNull] object foreignKey, [CanBeNull] object entityType, [CanBeNull] object duplicateEntityType)
         {
-            return string.Format(CultureInfo.CurrentCulture, GetString("DuplicateKey", "key", "entityType"), key, entityType);
+            return string.Format(CultureInfo.CurrentCulture, GetString("DuplicateForeignKey", "foreignKey", "entityType", "duplicateEntityType"), foreignKey, entityType, duplicateEntityType);
+        }
+
+        /// <summary>
+        /// The index {index} cannot be added to the entity type '{entityType}' because an index on the same properties already exists on entity type '{duplicateEntityType}'.
+        /// </summary>
+        public static string DuplicateIndex([CanBeNull] object index, [CanBeNull] object entityType, [CanBeNull] object duplicateEntityType)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("DuplicateIndex", "index", "entityType", "duplicateEntityType"), index, entityType, duplicateEntityType);
+        }
+
+        /// <summary>
+        /// The key {key} cannot be added to the entity type '{entityType}' because a key on the same properties already exists on entity type '{duplicateEntityType}'.
+        /// </summary>
+        public static string DuplicateKey([CanBeNull] object key, [CanBeNull] object entityType, [CanBeNull] object duplicateEntityType)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("DuplicateKey", "key", "entityType", "duplicateEntityType"), key, entityType, duplicateEntityType);
         }
 
         /// <summary>
@@ -621,11 +637,11 @@ namespace Microsoft.Data.Entity.Internal
         }
 
         /// <summary>
-        /// The specified entity type '{type}' is invalid. It should be either the dependent entity  type '{dependentType}' or the principal entity type '{principalType}' or an entity type derived from one of them.
+        /// The specified entity type '{entityType}' is invalid. It should be either the dependent entity type '{dependentType}' or the principal entity type '{principalType}' or an entity type derived from one of them.
         /// </summary>
-        public static string EntityTypeNotInRelationship([CanBeNull] object type, [CanBeNull] object dependentType, [CanBeNull] object principalType)
+        public static string EntityTypeNotInRelationship([CanBeNull] object entityType, [CanBeNull] object dependentType, [CanBeNull] object principalType)
         {
-            return string.Format(CultureInfo.CurrentCulture, GetString("EntityTypeNotInRelationship", "type", "dependentType", "principalType"), type, dependentType, principalType);
+            return string.Format(CultureInfo.CurrentCulture, GetString("EntityTypeNotInRelationship", "entityType", "dependentType", "principalType"), entityType, dependentType, principalType);
         }
 
         /// <summary>
@@ -717,11 +733,11 @@ namespace Microsoft.Data.Entity.Internal
         }
 
         /// <summary>
-        /// The property '{property}' on entity type '{entity}' cannot be marked as nullable/optional because the type of the property is '{propertyType}' which is not a nullable type. Any property can be marked as non-nullable/required, but only properties of nullable types and which are not part of primary key can be marked as nullable/optional.
+        /// The property '{property}' on entity type '{entityType}' cannot be marked as nullable/optional because the type of the property is '{propertyType}' which is not a nullable type. Any property can be marked as non-nullable/required, but only properties of nullable types and which are not part of primary key can be marked as nullable/optional.
         /// </summary>
-        public static string CannotBeNullable([CanBeNull] object property, [CanBeNull] object entity, [CanBeNull] object propertyType)
+        public static string CannotBeNullable([CanBeNull] object property, [CanBeNull] object entityType, [CanBeNull] object propertyType)
         {
-            return string.Format(CultureInfo.CurrentCulture, GetString("CannotBeNullable", "property", "entity", "propertyType"), property, entity, propertyType);
+            return string.Format(CultureInfo.CurrentCulture, GetString("CannotBeNullable", "property", "entityType", "propertyType"), property, entityType, propertyType);
         }
 
         /// <summary>
@@ -741,22 +757,6 @@ namespace Microsoft.Data.Entity.Internal
         }
 
         /// <summary>
-        /// The property '{property}' cannot be added to entity type '{entityType}' because it has been explicitly ignored.
-        /// </summary>
-        public static string PropertyIgnoredExplicitly([CanBeNull] object property, [CanBeNull] object entityType)
-        {
-            return string.Format(CultureInfo.CurrentCulture, GetString("PropertyIgnoredExplicitly", "property", "entityType"), property, entityType);
-        }
-
-        /// <summary>
-        /// The entity type '{entityType}' could not be added because it has been explicitly ignored.
-        /// </summary>
-        public static string EntityIgnoredExplicitly([CanBeNull] object entityType)
-        {
-            return string.Format(CultureInfo.CurrentCulture, GetString("EntityIgnoredExplicitly", "entityType"), entityType);
-        }
-
-        /// <summary>
         /// The entity type '{entityType}' cannot be removed because it is being referenced from a foreign key. All referencing foreign keys must be removed or redefined before the entity type can be removed.
         /// </summary>
         public static string EntityTypeInUse([CanBeNull] object entityType)
@@ -770,14 +770,6 @@ namespace Microsoft.Data.Entity.Internal
         public static string ArgumentPropertyNull([CanBeNull] object property, [CanBeNull] object argument)
         {
             return string.Format(CultureInfo.CurrentCulture, GetString("ArgumentPropertyNull", "property", "argument"), property, argument);
-        }
-
-        /// <summary>
-        /// The navigation property '{navigation}' cannot be added to entity type '{entityType}' because it has been explicitly ignored.
-        /// </summary>
-        public static string NavigationIgnoredExplicitly([CanBeNull] object navigation, [CanBeNull] object entityType)
-        {
-            return string.Format(CultureInfo.CurrentCulture, GetString("NavigationIgnoredExplicitly", "navigation", "entityType"), navigation, entityType);
         }
 
         /// <summary>
@@ -861,7 +853,7 @@ namespace Microsoft.Data.Entity.Internal
         }
 
         /// <summary>
-        /// The property '{property}' on entity type '{entityType}' does not have value generation on add enabled and it is principal by at least one foreign key. Properties referenced by foreign keys should have value generation on add enabled.
+        /// The property '{property}' on entity type '{entityType}' does not have value generation on add enabled and it is referenced by at least one foreign key. Properties referenced by foreign keys should have value generation on add enabled.
         /// </summary>
         public static string PrincipalKeyNoValueGenerationOnAdd([CanBeNull] object property, [CanBeNull] object entityType)
         {
@@ -989,11 +981,19 @@ namespace Microsoft.Data.Entity.Internal
         }
 
         /// <summary>
-        /// The property '{property}' on entity type '{entity}' cannot be marked as nullable/optional because the property is a part of the primary key. Any property can be marked as non-nullable/required, but only properties of nullable types and which are not part of primary key can be marked as nullable/optional.
+        /// The property '{property}' on entity type '{entityType}' cannot be marked as nullable/optional because the property is a part of the primary key. Any property can be marked as non-nullable/required, but only properties of nullable types and which are not part of primary key can be marked as nullable/optional.
         /// </summary>
-        public static string CannotBeNullablePK([CanBeNull] object property, [CanBeNull] object entity)
+        public static string CannotBeNullablePK([CanBeNull] object property, [CanBeNull] object entityType)
         {
-            return string.Format(CultureInfo.CurrentCulture, GetString("CannotBeNullablePK", "property", "entity"), property, entity);
+            return string.Format(CultureInfo.CurrentCulture, GetString("CannotBeNullablePK", "property", "entityType"), property, entityType);
+        }
+
+        /// <summary>
+        /// The foreign key {foreignKey} on entity type '{entityType}' cannot be marked as optional because it does not contain any property of a nullable type. Any foreign key can be marked as required, but only foreign keys with at least one property of a nullable type and which is not part of primary key can be marked as optional.
+        /// </summary>
+        public static string ForeignKeyCannotBeOptional([CanBeNull] object foreignKey, [CanBeNull] object entityType)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("ForeignKeyCannotBeOptional", "foreignKey", "entityType"), foreignKey, entityType);
         }
 
         /// <summary>
@@ -1050,22 +1050,6 @@ namespace Microsoft.Data.Entity.Internal
         public static string HiLoBadBlockSize
         {
             get { return GetString("HiLoBadBlockSize"); }
-        }
-
-        /// <summary>
-        /// The pool size used for Hi-Lo value generators must be positive.
-        /// </summary>
-        public static string HiLoBadPoolSize
-        {
-            get { return GetString("HiLoBadPoolSize"); }
-        }
-
-        /// <summary>
-        /// The property '{property}' is not a Byte array. TimestampAttribute can only be applied for Byte array properties.
-        /// </summary>
-        public static string TimestampAttributeOnNonBinary([CanBeNull] object property)
-        {
-            return string.Format(CultureInfo.CurrentCulture, GetString("TimestampAttributeOnNonBinary", "property"), property);
         }
 
         /// <summary>
@@ -1138,6 +1122,70 @@ namespace Microsoft.Data.Entity.Internal
         public static string DataBindingWithIListSource
         {
             get { return GetString("DataBindingWithIListSource"); }
+        }
+
+        /// <summary>
+        /// The derived type '{derivedType}' cannot have KeyAttribute on property '{property}' since primary key can only be declared on the root type.
+        /// </summary>
+        public static string KeyAttributeOnDerivedEntity([CanBeNull] object derivedType, [CanBeNull] object property)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("KeyAttributeOnDerivedEntity", "derivedType", "property"), derivedType, property);
+        }
+
+        /// <summary>
+        /// InversePropertyAttributes on navigation '{navigation}' in entity type '{entityType}' and on navigation '{referencedNavigation}' in entity type '{referencedEntityType}' are not pointing to each other.
+        /// </summary>
+        public static string InversePropertyMismatch([CanBeNull] object navigation, [CanBeNull] object entityType, [CanBeNull] object referencedNavigation, [CanBeNull] object referencedEntityType)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("InversePropertyMismatch", "navigation", "entityType", "referencedNavigation", "referencedEntityType"), navigation, entityType, referencedNavigation, referencedEntityType);
+        }
+
+        /// <summary>
+        /// There are multiple properties pointing to navigation '{navigation}' in entity type '{entityType}'. To define composite foreign key using data annotations, use ForeignKeyAttribute on navigation.
+        /// </summary>
+        public static string CompositeFkOnProperty([CanBeNull] object navigation, [CanBeNull] object entityType)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("CompositeFkOnProperty", "navigation", "entityType"), navigation, entityType);
+        }
+
+        /// <summary>
+        /// The ForeignKeyAttributes on property '{property}' and navigation '{navigation}' in entity type '{entityType}' do not point at each other. The value of ForeignKeyAttribute on property should be navigation name and the value of ForeignKeyAttribute on navigation should be the foreign key property name.
+        /// </summary>
+        public static string FkAttributeOnPropertyNavigationMismatch([CanBeNull] object property, [CanBeNull] object navigation, [CanBeNull] object entityType)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("FkAttributeOnPropertyNavigationMismatch", "property", "navigation", "entityType"), property, navigation, entityType);
+        }
+
+        /// <summary>
+        /// The property list specified using ForeignKeyAttribute on navigation '{navigation}' in entity type '{entityType}' is incorrect. The attribute value should be comma-separated list of property names.
+        /// </summary>
+        public static string InvalidPropertyListOnNavigation([CanBeNull] object navigation, [CanBeNull] object entityType)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("InvalidPropertyListOnNavigation", "navigation", "entityType"), navigation, entityType);
+        }
+
+        /// <summary>
+        /// Invalid relationship has been specified using InverseProperty and ForeignKey. The navigation '{navigation}' in entity type '{entityType}' and the navigation '{referencedNavigation}' in entity type '{referencedEntityType}' are related by InversePropertyAttribute but the ForeignKeyAttribute specified for both navigations have different values.
+        /// </summary>
+        public static string InvalidRelationshipUsingDataAnnotations([CanBeNull] object navigation, [CanBeNull] object entityType, [CanBeNull] object referencedNavigation, [CanBeNull] object referencedEntityType)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("InvalidRelationshipUsingDataAnnotations", "navigation", "entityType", "referencedNavigation", "referencedEntityType"), navigation, entityType, referencedNavigation, referencedEntityType);
+        }
+
+        /// <summary>
+        /// The property '{property}' cannot be added to the entity type '{entityType}' because a navigation property with the same name already exists on entity type '{duplicateEntityType}'.
+        /// </summary>
+        public static string ConflictingNavigation([CanBeNull] object property, [CanBeNull] object entityType, [CanBeNull] object duplicateEntityType)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("ConflictingNavigation", "property", "entityType", "duplicateEntityType"), property, entityType, duplicateEntityType);
+        }
+
+        /// <summary>
+        /// The navigation property '{navigation}' cannot be added to the entity type '{entityType}' because a property with the same name already exists on entity type '{duplicateEntityType}'.
+        /// </summary>
+        public static string ConflictingProperty([CanBeNull] object navigation, [CanBeNull] object entityType, [CanBeNull] object duplicateEntityType)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("ConflictingProperty", "navigation", "entityType", "duplicateEntityType"), navigation, entityType, duplicateEntityType);
         }
 
         private static string GetString(string name, params string[] formatterNames)

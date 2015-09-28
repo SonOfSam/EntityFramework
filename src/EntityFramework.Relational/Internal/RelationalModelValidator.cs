@@ -6,22 +6,19 @@ using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.Data.Entity.Metadata;
-using Microsoft.Data.Entity.Utilities;
 using Microsoft.Framework.Logging;
 
 namespace Microsoft.Data.Entity.Internal
 {
     public class RelationalModelValidator : LoggingModelValidator
     {
-        private readonly IRelationalMetadataExtensionProvider _relationalExtensions;
+        private readonly IRelationalAnnotationProvider _relationalExtensions;
 
         public RelationalModelValidator(
             [NotNull] ILoggerFactory loggerFactory,
-            [NotNull] IRelationalMetadataExtensionProvider relationalExtensions)
+            [NotNull] IRelationalAnnotationProvider relationalExtensions)
             : base(loggerFactory)
         {
-            Check.NotNull(relationalExtensions, nameof(relationalExtensions));
-
             _relationalExtensions = relationalExtensions;
         }
 

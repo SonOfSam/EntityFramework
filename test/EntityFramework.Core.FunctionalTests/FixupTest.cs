@@ -246,18 +246,18 @@ namespace Microsoft.Data.Entity.FunctionalTests
             {
                 modelBuilder.Entity<Product>(b =>
                     {
-                        b.Collection(e => e.SpecialOffers).InverseReference(e => e.Product);
+                        b.HasMany(e => e.SpecialOffers).WithOne(e => e.Product);
                     });
 
                 modelBuilder.Entity<Category>(b =>
                     {
-                        b.Collection(e => e.Products).InverseReference(e => e.Category);
+                        b.HasMany(e => e.Products).WithOne(e => e.Category);
                     });
             }
 
             protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
             {
-                optionsBuilder.UseInMemoryDatabase(persist: false);
+                optionsBuilder.UseInMemoryDatabase();
             }
         }
 

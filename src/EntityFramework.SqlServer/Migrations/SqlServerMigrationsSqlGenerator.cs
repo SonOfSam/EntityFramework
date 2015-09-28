@@ -6,10 +6,9 @@ using System.Text;
 using JetBrains.Annotations;
 using Microsoft.Data.Entity.Infrastructure;
 using Microsoft.Data.Entity.Metadata;
+using Microsoft.Data.Entity.Metadata.Internal;
 using Microsoft.Data.Entity.Migrations.Operations;
-using Microsoft.Data.Entity.SqlServer;
-using Microsoft.Data.Entity.SqlServer.Metadata;
-using Microsoft.Data.Entity.Update;
+using Microsoft.Data.Entity.Storage;
 using Microsoft.Data.Entity.Utilities;
 
 namespace Microsoft.Data.Entity.Migrations
@@ -19,20 +18,21 @@ namespace Microsoft.Data.Entity.Migrations
         private int _variableCounter;
 
         public SqlServerMigrationsSqlGenerator(
-            [NotNull] ISqlServerUpdateSqlGenerator sql,
-            [NotNull] SqlServerTypeMapper typeMapper,
-            [NotNull] SqlServerMetadataExtensionProvider annotations)
-            : base(sql, typeMapper, annotations)
+            [NotNull] IRelationalCommandBuilderFactory commandBuilderFactory,
+            [NotNull] ISqlGenerator sqlGenerator,
+            [NotNull] IRelationalTypeMapper typeMapper,
+            [NotNull] IRelationalAnnotationProvider annotations)
+            : base(commandBuilderFactory, sqlGenerator, typeMapper, annotations)
         {
         }
 
-        protected override void Generate(MigrationOperation operation, IModel model, SqlBatchBuilder builder)
+        protected override void Generate(MigrationOperation operation, IModel model, RelationalCommandListBuilder builder)
         {
             Check.NotNull(operation, nameof(operation));
             Check.NotNull(builder, nameof(builder));
 
-            var createDatabaseOperation = operation as CreateDatabaseOperation;
-            var dropDatabaseOperation = operation as DropDatabaseOperation;
+            var createDatabaseOperation = operation as SqlServerCreateDatabaseOperation;
+            var dropDatabaseOperation = operation as SqlServerDropDatabaseOperation;
             if (createDatabaseOperation != null)
             {
                 Generate(createDatabaseOperation, model, builder);
@@ -50,7 +50,7 @@ namespace Microsoft.Data.Entity.Migrations
         protected override void Generate(
             AlterColumnOperation operation,
             IModel model,
-            SqlBatchBuilder builder)
+            RelationalCommandListBuilder builder)
         {
             Check.NotNull(operation, nameof(operation));
             Check.NotNull(builder, nameof(builder));
@@ -59,41 +59,43 @@ namespace Microsoft.Data.Entity.Migrations
 
             builder
                 .Append("ALTER TABLE ")
-                .Append(Sql.DelimitIdentifier(operation.Table, operation.Schema))
+                .Append(SqlGenerator.DelimitIdentifier(operation.Table, operation.Schema))
                 .Append(" ALTER COLUMN ");
-            ColumnDefinition(
-                    operation.Schema,
-                    operation.Table,
-                    operation.Name,
-                    operation.ClrType,
-                    operation.ColumnType,
-                    operation.IsNullable,
-                    /*defaultValue:*/ null,
-                    /*defaultValueSql:*/ null,
-                    operation.ComputedColumnSql,
-                    /*identity:*/ false,
-                    operation,
-                    model,
-                    builder);
 
-            if (operation.DefaultValue != null || operation.DefaultValueSql != null)
+            ColumnDefinition(
+                operation.Schema,
+                operation.Table,
+                operation.Name,
+                operation.ClrType,
+                operation.ColumnType,
+                operation.IsNullable,
+                /*defaultValue:*/ null,
+                /*defaultValueSql:*/ null,
+                operation.ComputedColumnSql,
+                /*identity:*/ false,
+                operation,
+                model,
+                builder);
+
+            if (operation.DefaultValue != null
+                || operation.DefaultValueSql != null)
             {
                 builder
                     .AppendLine(";")
                     .Append("ALTER TABLE ")
-                    .Append(Sql.DelimitIdentifier(operation.Table, operation.Schema))
+                    .Append(SqlGenerator.DelimitIdentifier(operation.Table, operation.Schema))
                     .Append(" ADD");
                 DefaultValue(operation.DefaultValue, operation.DefaultValueSql, builder);
                 builder
                     .Append(" FOR ")
-                    .Append(Sql.DelimitIdentifier(operation.Name));
+                    .Append(SqlGenerator.DelimitIdentifier(operation.Name));
             }
         }
 
         protected override void Generate(
             RenameIndexOperation operation,
             IModel model,
-            SqlBatchBuilder builder)
+            RelationalCommandListBuilder builder)
         {
             Check.NotNull(operation, nameof(operation));
             Check.NotNull(builder, nameof(builder));
@@ -113,7 +115,7 @@ namespace Microsoft.Data.Entity.Migrations
             Rename(qualifiedName.ToString(), operation.NewName, "INDEX", builder);
         }
 
-        protected override void Generate(RenameSequenceOperation operation, IModel model, SqlBatchBuilder builder)
+        protected override void Generate(RenameSequenceOperation operation, IModel model, RelationalCommandListBuilder builder)
         {
             Check.NotNull(operation, nameof(operation));
             Check.NotNull(builder, nameof(builder));
@@ -141,7 +143,7 @@ namespace Microsoft.Data.Entity.Migrations
             {
                 if (separate)
                 {
-                    builder.AppendLine(Sql.BatchCommandSeparator);
+                    builder.AppendLine(SqlGenerator.BatchCommandSeparator);
                 }
 
                 Transfer(operation.NewSchema, operation.Schema, name, builder);
@@ -151,7 +153,7 @@ namespace Microsoft.Data.Entity.Migrations
         protected override void Generate(
             RenameTableOperation operation,
             IModel model,
-            SqlBatchBuilder builder)
+            RelationalCommandListBuilder builder)
         {
             Check.NotNull(operation, nameof(operation));
             Check.NotNull(builder, nameof(builder));
@@ -179,19 +181,20 @@ namespace Microsoft.Data.Entity.Migrations
             {
                 if (separate)
                 {
-                    builder.AppendLine(Sql.BatchCommandSeparator);
+                    builder.AppendLine(SqlGenerator.BatchCommandSeparator);
                 }
 
                 Transfer(operation.NewSchema, operation.Schema, name, builder);
             }
         }
 
-        protected override void Generate(CreateIndexOperation operation, IModel model, SqlBatchBuilder builder)
+        protected override void Generate(CreateIndexOperation operation, IModel model, RelationalCommandListBuilder builder)
         {
             base.Generate(operation, model, builder);
 
             var clustered = operation[SqlServerAnnotationNames.Prefix + SqlServerAnnotationNames.Clustered] as bool?;
-            if (operation.IsUnique && clustered != true)
+            if (operation.IsUnique
+                && clustered != true)
             {
                 builder.Append(" WHERE ");
                 for (var i = 0; i < operation.Columns.Length; i++)
@@ -202,13 +205,13 @@ namespace Microsoft.Data.Entity.Migrations
                     }
 
                     builder
-                        .Append(base.Sql.DelimitIdentifier(operation.Columns[i]))
+                        .Append(SqlGenerator.DelimitIdentifier(operation.Columns[i]))
                         .Append(" IS NOT NULL");
                 }
             }
         }
 
-        protected override void Generate(EnsureSchemaOperation operation, IModel model, SqlBatchBuilder builder)
+        protected override void Generate(EnsureSchemaOperation operation, IModel model, RelationalCommandListBuilder builder)
         {
             Check.NotNull(operation, nameof(operation));
             Check.NotNull(builder, nameof(builder));
@@ -220,67 +223,67 @@ namespace Microsoft.Data.Entity.Migrations
 
             builder
                 .Append("IF SCHEMA_ID(N")
-                .Append(Sql.GenerateLiteral(operation.Name))
+                .Append(SqlGenerator.GenerateLiteral(operation.Name))
                 .Append(") IS NULL EXEC(N'CREATE SCHEMA ")
-                .Append(Sql.DelimitIdentifier(operation.Name))
+                .Append(SqlGenerator.DelimitIdentifier(operation.Name))
                 .Append("')");
         }
 
         protected virtual void Generate(
-            [NotNull] CreateDatabaseOperation operation,
+            [NotNull] SqlServerCreateDatabaseOperation operation,
             [CanBeNull] IModel model,
-            [NotNull] SqlBatchBuilder builder)
+            [NotNull] RelationalCommandListBuilder builder)
         {
             Check.NotNull(operation, nameof(operation));
             Check.NotNull(builder, nameof(builder));
 
             builder
                 .Append("CREATE DATABASE ")
-                .Append(Sql.DelimitIdentifier(operation.Name))
-                .AppendLine(Sql.BatchCommandSeparator)
-                .EndBatch()
+                .Append(SqlGenerator.DelimitIdentifier(operation.Name))
+                .AppendLine(SqlGenerator.BatchCommandSeparator)
+                .EndCommand()
                 .Append("IF SERVERPROPERTY('EngineEdition') <> 5 EXEC(N'ALTER DATABASE ")
-                .Append(Sql.DelimitIdentifier(operation.Name))
+                .Append(SqlGenerator.DelimitIdentifier(operation.Name))
                 .Append(" SET READ_COMMITTED_SNAPSHOT ON')");
         }
 
         protected virtual void Generate(
-            [NotNull] DropDatabaseOperation operation,
+            [NotNull] SqlServerDropDatabaseOperation operation,
             [CanBeNull] IModel model,
-            [NotNull] SqlBatchBuilder builder)
+            [NotNull] RelationalCommandListBuilder builder)
         {
             Check.NotNull(operation, nameof(operation));
             Check.NotNull(builder, nameof(builder));
 
             builder
                 .Append("IF SERVERPROPERTY('EngineEdition') <> 5 EXEC(N'ALTER DATABASE ")
-                .Append(Sql.DelimitIdentifier(operation.Name))
+                .Append(SqlGenerator.DelimitIdentifier(operation.Name))
                 .Append(" SET SINGLE_USER WITH ROLLBACK IMMEDIATE')")
-                .AppendLine(Sql.BatchCommandSeparator)
-                .EndBatch()
+                .AppendLine(SqlGenerator.BatchCommandSeparator)
+                .EndCommand()
                 .Append("DROP DATABASE ")
-                .Append(Sql.DelimitIdentifier(operation.Name));
+                .Append(SqlGenerator.DelimitIdentifier(operation.Name));
         }
 
         protected override void Generate(
             DropIndexOperation operation,
             IModel model,
-            SqlBatchBuilder builder)
+            RelationalCommandListBuilder builder)
         {
             Check.NotNull(operation, nameof(operation));
             Check.NotNull(builder, nameof(builder));
 
             builder
                 .Append("DROP INDEX ")
-                .Append(Sql.DelimitIdentifier(operation.Name))
+                .Append(SqlGenerator.DelimitIdentifier(operation.Name))
                 .Append(" ON ")
-                .Append(Sql.DelimitIdentifier(operation.Table, operation.Schema));
+                .Append(SqlGenerator.DelimitIdentifier(operation.Table, operation.Schema));
         }
 
         protected override void Generate(
             DropColumnOperation operation,
             IModel model,
-            SqlBatchBuilder builder)
+            RelationalCommandListBuilder builder)
         {
             Check.NotNull(operation, nameof(operation));
             Check.NotNull(builder, nameof(builder));
@@ -292,7 +295,7 @@ namespace Microsoft.Data.Entity.Migrations
         protected override void Generate(
             RenameColumnOperation operation,
             IModel model,
-            SqlBatchBuilder builder)
+            RelationalCommandListBuilder builder)
         {
             Check.NotNull(operation, nameof(operation));
             Check.NotNull(builder, nameof(builder));
@@ -324,10 +327,10 @@ namespace Microsoft.Data.Entity.Migrations
             string computedColumnSql,
             IAnnotatable annotatable,
             IModel model,
-            SqlBatchBuilder builder)
+            RelationalCommandListBuilder builder)
         {
             var valueGenerationStrategy = annotatable[
-                SqlServerAnnotationNames.Prefix + SqlServerAnnotationNames.ValueGenerationStrategy] as SqlServerIdentityStrategy?;
+                SqlServerAnnotationNames.Prefix + SqlServerAnnotationNames.ValueGenerationStrategy] as SqlServerValueGenerationStrategy?;
 
             ColumnDefinition(
                 schema,
@@ -339,7 +342,7 @@ namespace Microsoft.Data.Entity.Migrations
                 defaultValue,
                 defaultValueSql,
                 computedColumnSql,
-                valueGenerationStrategy == SqlServerIdentityStrategy.IdentityColumn,
+                valueGenerationStrategy == SqlServerValueGenerationStrategy.IdentityColumn,
                 annotatable,
                 model,
                 builder);
@@ -358,7 +361,7 @@ namespace Microsoft.Data.Entity.Migrations
             bool identity,
             [NotNull] IAnnotatable annotatable,
             [CanBeNull] IModel model,
-            [NotNull] SqlBatchBuilder builder)
+            [NotNull] RelationalCommandListBuilder builder)
         {
             Check.NotEmpty(name, nameof(name));
             Check.NotNull(clrType, nameof(clrType));
@@ -368,7 +371,7 @@ namespace Microsoft.Data.Entity.Migrations
             if (computedColumnSql != null)
             {
                 builder
-                    .Append(Sql.DelimitIdentifier(name))
+                    .Append(SqlGenerator.DelimitIdentifier(name))
                     .Append(" AS ")
                     .Append(computedColumnSql);
 
@@ -398,13 +401,13 @@ namespace Microsoft.Data.Entity.Migrations
         protected virtual void Rename(
             [NotNull] string name,
             [NotNull] string newName,
-            [NotNull] SqlBatchBuilder builder) => Rename(name, newName, /*type:*/ null, builder);
+            [NotNull] RelationalCommandListBuilder builder) => Rename(name, newName, /*type:*/ null, builder);
 
         protected virtual void Rename(
             [NotNull] string name,
             [NotNull] string newName,
             [CanBeNull] string type,
-            [NotNull] SqlBatchBuilder builder)
+            [NotNull] RelationalCommandListBuilder builder)
         {
             Check.NotEmpty(name, nameof(name));
             Check.NotEmpty(newName, nameof(newName));
@@ -412,15 +415,15 @@ namespace Microsoft.Data.Entity.Migrations
 
             builder
                 .Append("EXEC sp_rename N")
-                .Append(Sql.GenerateLiteral(name))
+                .Append(SqlGenerator.GenerateLiteral(name))
                 .Append(", N")
-                .Append(Sql.GenerateLiteral(newName));
+                .Append(SqlGenerator.GenerateLiteral(newName));
 
             if (type != null)
             {
                 builder
                     .Append(", ")
-                    .Append(Sql.GenerateLiteral(type));
+                    .Append(SqlGenerator.GenerateLiteral(type));
             }
         }
 
@@ -428,7 +431,7 @@ namespace Microsoft.Data.Entity.Migrations
             [NotNull] string newSchema,
             [CanBeNull] string schema,
             [NotNull] string name,
-            [NotNull] SqlBatchBuilder builder)
+            [NotNull] RelationalCommandListBuilder builder)
         {
             Check.NotEmpty(newSchema, nameof(newSchema));
             Check.NotEmpty(name, nameof(name));
@@ -436,12 +439,12 @@ namespace Microsoft.Data.Entity.Migrations
 
             builder
                 .Append("ALTER SCHEMA ")
-                .Append(Sql.DelimitIdentifier(newSchema))
+                .Append(SqlGenerator.DelimitIdentifier(newSchema))
                 .Append(" TRANSFER ")
-                .Append(Sql.DelimitIdentifier(name, schema));
+                .Append(SqlGenerator.DelimitIdentifier(name, schema));
         }
 
-        protected override void IndexTraits(MigrationOperation operation, IModel model, SqlBatchBuilder builder)
+        protected override void IndexTraits(MigrationOperation operation, IModel model, RelationalCommandListBuilder builder)
         {
             Check.NotNull(operation, nameof(operation));
             Check.NotNull(builder, nameof(builder));
@@ -453,7 +456,7 @@ namespace Microsoft.Data.Entity.Migrations
             }
         }
 
-        protected override void ForeignKeyAction(ReferentialAction referentialAction, SqlBatchBuilder builder)
+        protected override void ForeignKeyAction(ReferentialAction referentialAction, RelationalCommandListBuilder builder)
         {
             Check.NotNull(builder, nameof(builder));
 
@@ -471,7 +474,7 @@ namespace Microsoft.Data.Entity.Migrations
             [CanBeNull] string schema,
             [NotNull] string tableName,
             [NotNull] string columnName,
-            [NotNull] SqlBatchBuilder builder)
+            [NotNull] RelationalCommandListBuilder builder)
         {
             Check.NotEmpty(tableName, nameof(tableName));
             Check.NotEmpty(columnName, nameof(columnName));
@@ -493,19 +496,19 @@ namespace Microsoft.Data.Entity.Migrations
             if (schema != null)
             {
                 builder
-                    .Append(Sql.EscapeLiteral(schema))
+                    .Append(SqlGenerator.EscapeLiteral(schema))
                     .Append(".");
             }
 
             builder
-                .Append(Sql.EscapeLiteral(tableName))
+                .Append(SqlGenerator.EscapeLiteral(tableName))
                 .Append("') AND [c].[name] = N'")
-                .Append(Sql.EscapeLiteral(columnName))
+                .Append(SqlGenerator.EscapeLiteral(columnName))
                 .AppendLine("');")
                 .Append("IF ")
                 .Append(variable)
                 .Append(" IS NOT NULL EXEC(N'ALTER TABLE ")
-                .Append(Sql.DelimitIdentifier(tableName, schema))
+                .Append(SqlGenerator.DelimitIdentifier(tableName, schema))
                 .Append(" DROP CONSTRAINT [' + ")
                 .Append(variable)
                 .AppendLine(" + ']');");

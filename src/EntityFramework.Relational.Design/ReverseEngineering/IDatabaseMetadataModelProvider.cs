@@ -3,15 +3,13 @@
 
 using JetBrains.Annotations;
 using Microsoft.Data.Entity.Metadata;
-using Microsoft.Data.Entity.Relational.Design.Templating.Compilation;
+using Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Internal;
 
 namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering
 {
     public interface IDatabaseMetadataModelProvider
     {
-        IModel GenerateMetadataModel([NotNull] string connectionString);
-        string DbContextTemplate { get; }
-        string EntityTypeTemplate { get; }
-        void AddReferencesForTemplates([NotNull] MetadataReferencesProvider metadataReferencesProvider);
+        IModel GenerateMetadataModel(
+            [NotNull] string connectionString, [CanBeNull] TableSelectionSet tableSelectionSet);
     }
 }

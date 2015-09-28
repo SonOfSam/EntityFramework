@@ -25,7 +25,7 @@ namespace Microsoft.Data.Entity.Sqlite.FunctionalTests
             var sqliteBuilder = builder.UseSqlite(_testStore.Connection.ConnectionString);
             if (suppress)
             {
-                sqliteBuilder.SuppressForeignKeysEnforcement();
+                sqliteBuilder.SuppressForeignKeyEnforcement();
             }
 
             var options = builder.Options;
@@ -41,7 +41,7 @@ namespace Microsoft.Data.Entity.Sqlite.FunctionalTests
                 else
                 {
                     var ex = Assert.Throws<DbUpdateException>(() => { context.SaveChanges(); });
-                    Assert.Contains("FOREIGN KEY constraint failed",ex.InnerException.Message);
+                    Assert.Contains("FOREIGN KEY constraint failed", ex.InnerException.Message);
                 }
             }
         }
@@ -60,8 +60,8 @@ namespace Microsoft.Data.Entity.Sqlite.FunctionalTests
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Parent>()
-                .Collection(b => b.Children)
-                .InverseReference(b => b.MyParent)
+                .HasMany(b => b.Children)
+                .WithOne(b => b.MyParent)
                 .ForeignKey(b => b.ParentId);
         }
     }

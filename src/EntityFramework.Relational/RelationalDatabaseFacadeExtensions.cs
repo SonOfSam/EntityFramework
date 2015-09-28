@@ -20,6 +20,12 @@ namespace Microsoft.Data.Entity
         public static void Migrate([NotNull] this DatabaseFacade databaseFacade)
             => Check.NotNull(databaseFacade, nameof(databaseFacade)).GetService<IMigrator>().Migrate();
 
+        public static Task MigrateAsync(
+            [NotNull] this DatabaseFacade databaseFacade,
+            CancellationToken cancellationToken = default(CancellationToken))
+            => Check.NotNull(databaseFacade, nameof(databaseFacade)).GetService<IMigrator>()
+                .MigrateAsync(cancellationToken: cancellationToken);
+
         public static void ExecuteSqlCommand(
             [NotNull] this DatabaseFacade databaseFacade,
             [NotNull] string sql,
@@ -30,8 +36,17 @@ namespace Microsoft.Data.Entity
                         sql,
                         parameters);
 
-        public static void UseRelationalNulls([NotNull] this DatabaseFacade databaseFacade, bool useRelationalNulls)
-            => ((RelationalDatabase)databaseFacade.GetService<IDatabase>()).UseRelationalNulls = useRelationalNulls;
+        public static Task ExecuteSqlCommandAsync(
+            [NotNull] this DatabaseFacade databaseFacade,
+            [NotNull] string sql,
+            CancellationToken cancellationToken = default(CancellationToken),
+            [NotNull] params object[] parameters)
+            => Check.NotNull(databaseFacade, nameof(databaseFacade))
+                .GetService<RelationalSqlExecutor>()
+                    .ExecuteSqlCommandAsync(
+                        sql,
+                        cancellationToken,
+                        parameters);
 
         public static DbConnection GetDbConnection([NotNull] this DatabaseFacade databaseFacade)
             => GetRelationalConnection(databaseFacade).DbConnection;

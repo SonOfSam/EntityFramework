@@ -3,10 +3,10 @@
 
 using System.Reflection;
 using System.Resources;
-using Microsoft.Data.Entity.Storage;
+using Microsoft.Data.Entity.Infrastructure;
 
 [assembly: NeutralResourcesLanguage("en-US")]
 [assembly: AssemblyMetadata("Serviceable", "True")]
-[assembly: ProviderDesignTimeServices(
+[assembly: DesignTimeProviderServices(
     typeName: "Microsoft.Data.Entity.Sqlite.Design.ReverseEngineering.SqliteDesignTimeMetadataProviderFactory",
     assemblyName: "EntityFramework.Sqlite.Design")]

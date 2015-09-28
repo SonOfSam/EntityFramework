@@ -5,6 +5,7 @@ using Microsoft.Data.Entity.ChangeTracking.Internal;
 using Microsoft.Data.Entity.Infrastructure;
 using Microsoft.Data.Entity.Storage;
 using Microsoft.Data.Entity.Update;
+using Microsoft.Data.Entity.Update.Internal;
 using Microsoft.Framework.DependencyInjection;
 using Xunit;
 
@@ -20,7 +21,7 @@ namespace Microsoft.Data.Entity.Tests.Update
 
             var optionsBuilder = new DbContextOptionsBuilder()
                 .UseModel(model);
-            optionsBuilder.UseInMemoryDatabase(persist: false);
+            optionsBuilder.UseInMemoryDatabase();
 
             var contextServices = new DbContext(optionsBuilder.Options).GetService();
             var stateManager = contextServices.GetRequiredService<IStateManager>();

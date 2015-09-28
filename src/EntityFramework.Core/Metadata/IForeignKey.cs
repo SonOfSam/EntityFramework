@@ -16,5 +16,6 @@ namespace Microsoft.Data.Entity.Metadata
         INavigation PrincipalToDependent { get; }
         bool IsUnique { get; }
         bool IsRequired { get; }
+        DeleteBehavior DeleteBehavior { get; }
     }
 }

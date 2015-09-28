@@ -100,8 +100,8 @@ namespace Microsoft.Data.Entity.Tests
             {
                 var builder = CreateModelBuilder(new Model());
 
-                builder.Entity<Hob>().Key(e => new { e.Id1, e.Id2 });
-                builder.Entity<Nob>().Key(e => new { e.Id1, e.Id2 });
+                builder.Entity<Hob>().HasKey(e => new { e.Id1, e.Id2 });
+                builder.Entity<Nob>().HasKey(e => new { e.Id1, e.Id2 });
 
                 return builder;
             }
@@ -127,6 +127,11 @@ namespace Microsoft.Data.Entity.Tests
 
             public abstract TestModelBuilder Ignore<TEntity>()
                 where TEntity : class;
+
+            public virtual TestModelBuilder Validate()
+            {                
+                return ModelBuilder.Validate() == null ? null : this;
+            }
         }
 
         public abstract class TestEntityTypeBuilder<TEntity>
@@ -139,10 +144,10 @@ namespace Microsoft.Data.Entity.Tests
                 where TBaseEntity : class;
 
             public abstract TestEntityTypeBuilder<TEntity> BaseEntity(string baseEntityTypeName);
-            public abstract TestKeyBuilder Key(Expression<Func<TEntity, object>> keyExpression);
-            public abstract TestKeyBuilder Key(params string[] propertyNames);
-            public abstract TestKeyBuilder AlternateKey(Expression<Func<TEntity, object>> keyExpression);
-            public abstract TestKeyBuilder AlternateKey(params string[] propertyNames);
+            public abstract TestKeyBuilder HasKey(Expression<Func<TEntity, object>> keyExpression);
+            public abstract TestKeyBuilder HasKey(params string[] propertyNames);
+            public abstract TestKeyBuilder HasAlternateKey(Expression<Func<TEntity, object>> keyExpression);
+            public abstract TestKeyBuilder HasAlternateKey(params string[] propertyNames);
 
             public abstract TestPropertyBuilder<TProperty> Property<TProperty>(
                 Expression<Func<TEntity, TProperty>> propertyExpression);
@@ -157,11 +162,11 @@ namespace Microsoft.Data.Entity.Tests
             public abstract TestIndexBuilder Index(Expression<Func<TEntity, object>> indexExpression);
             public abstract TestIndexBuilder Index(params string[] propertyNames);
 
-            public abstract TestReferenceNavigationBuilder<TEntity, TRelatedEntity> Reference<TRelatedEntity>(
+            public abstract TestReferenceNavigationBuilder<TEntity, TRelatedEntity> HasOne<TRelatedEntity>(
                 Expression<Func<TEntity, TRelatedEntity>> reference = null)
                 where TRelatedEntity : class;
 
-            public abstract TestCollectionNavigationBuilder<TEntity, TRelatedEntity> Collection<TRelatedEntity>(
+            public abstract TestCollectionNavigationBuilder<TEntity, TRelatedEntity> HasMany<TRelatedEntity>(
                 Expression<Func<TEntity, IEnumerable<TRelatedEntity>>> collection = null)
                 where TRelatedEntity : class;
         }
@@ -207,9 +212,9 @@ namespace Microsoft.Data.Entity.Tests
         {
             public abstract Property Metadata { get; }
             public abstract TestPropertyBuilder<TProperty> Annotation(string annotation, object value);
-            public abstract TestPropertyBuilder<TProperty> Required(bool isRequired = true);
-            public abstract TestPropertyBuilder<TProperty> MaxLength(int maxLength);
-            public abstract TestPropertyBuilder<TProperty> ConcurrencyToken(bool isConcurrencyToken = true);
+            public abstract TestPropertyBuilder<TProperty> IsRequired(bool isRequired = true);
+            public abstract TestPropertyBuilder<TProperty> HasMaxLength(int maxLength);
+            public abstract TestPropertyBuilder<TProperty> IsConcurrencyToken(bool isConcurrencyToken = true);
 
             public abstract TestPropertyBuilder<TProperty> ValueGeneratedNever();
             public abstract TestPropertyBuilder<TProperty> ValueGeneratedOnAdd();
@@ -220,7 +225,7 @@ namespace Microsoft.Data.Entity.Tests
             where TEntity : class
             where TRelatedEntity : class
         {
-            public abstract TestReferenceCollectionBuilder<TEntity, TRelatedEntity> InverseReference(
+            public abstract TestReferenceCollectionBuilder<TEntity, TRelatedEntity> WithOne(
                 Expression<Func<TRelatedEntity, TEntity>> reference = null);
         }
 
@@ -228,10 +233,10 @@ namespace Microsoft.Data.Entity.Tests
             where TEntity : class
             where TRelatedEntity : class
         {
-            public abstract TestReferenceCollectionBuilder<TRelatedEntity, TEntity> InverseCollection(
+            public abstract TestReferenceCollectionBuilder<TRelatedEntity, TEntity> WithMany(
                 Expression<Func<TRelatedEntity, IEnumerable<TEntity>>> collection = null);
 
-            public abstract TestReferenceReferenceBuilder<TEntity, TRelatedEntity> InverseReference(
+            public abstract TestReferenceReferenceBuilder<TEntity, TRelatedEntity> WithOne(
                 Expression<Func<TRelatedEntity, TEntity>> reference = null);
         }
 
@@ -257,6 +262,8 @@ namespace Microsoft.Data.Entity.Tests
                 string annotation, object value);
 
             public abstract TestReferenceCollectionBuilder<TEntity, TRelatedEntity> Required(bool isRequired = true);
+
+            public abstract TestReferenceCollectionBuilder<TEntity, TRelatedEntity> WillCascadeOnDelete(bool cascade = true);
         }
 
         public abstract class TestReferenceReferenceBuilder<TEntity, TRelatedEntity>
@@ -281,6 +288,8 @@ namespace Microsoft.Data.Entity.Tests
                 Type principalEntityType, params string[] keyPropertyNames);
 
             public abstract TestReferenceReferenceBuilder<TEntity, TRelatedEntity> Required(bool isRequired = true);
+
+            public abstract TestReferenceReferenceBuilder<TEntity, TRelatedEntity> WillCascadeOnDelete(bool cascade = true);
         }
     }
 }

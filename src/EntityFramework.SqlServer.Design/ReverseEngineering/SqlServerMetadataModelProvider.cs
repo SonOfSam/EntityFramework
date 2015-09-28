@@ -12,7 +12,6 @@ using Microsoft.Data.Entity.Relational.Design.ReverseEngineering;
 using Microsoft.Data.Entity.Relational.Design.Utilities;
 using Microsoft.Data.Entity.SqlServer.Design.ReverseEngineering.Model;
 using Microsoft.Data.Entity.SqlServer.Design.Utilities;
-using Microsoft.Data.Entity.SqlServer.Metadata;
 using Microsoft.Data.Entity.Utilities;
 using Microsoft.Framework.Logging;
 
@@ -41,11 +40,12 @@ namespace Microsoft.Data.Entity.SqlServer.Design.ReverseEngineering
         private readonly Dictionary<string, Property> _columnIdToProperty = new Dictionary<string, Property>();
 
         public SqlServerMetadataModelProvider(
-            [NotNull] ILogger logger,
+            [NotNull] ILoggerFactory loggerFactory,
             [NotNull] ModelUtilities modelUtilities,
-            [NotNull] IRelationalMetadataExtensionProvider extensionsProvider,
+            [NotNull] CSharpUtilities cSharpUtilities,
+            [NotNull] IRelationalAnnotationProvider extensionsProvider,
             [NotNull] SqlServerLiteralUtilities sqlServerLiteralUtilities)
-            : base(logger, modelUtilities)
+            : base(loggerFactory, modelUtilities, cSharpUtilities)
         {
             Check.NotNull(extensionsProvider, nameof(extensionsProvider));
             Check.NotNull(sqlServerLiteralUtilities, nameof(sqlServerLiteralUtilities));
@@ -54,7 +54,7 @@ namespace Microsoft.Data.Entity.SqlServer.Design.ReverseEngineering
             _sqlServerLiteralUtilities = sqlServerLiteralUtilities;
         }
 
-        protected override IRelationalMetadataExtensionProvider ExtensionsProvider { get; }
+        protected override IRelationalAnnotationProvider ExtensionsProvider { get; }
 
         public override IModel ConstructRelationalModel([NotNull] string connectionString)
         {
@@ -195,6 +195,10 @@ namespace Microsoft.Data.Entity.SqlServer.Design.ReverseEngineering
 
             foreach (var table in _tables.Values)
             {
+                if (!_tableSelectionSet.Allows(table.SchemaName, table.TableName))
+                {
+                    continue;
+                }
                 var entityType = relationalModel.AddEntityType(table.Id);
                 _tableIdToEntityType.Add(table.Id, entityType);
                 entityType.Relational().TableName = _tables[table.Id].TableName;
@@ -208,6 +212,11 @@ namespace Microsoft.Data.Entity.SqlServer.Design.ReverseEngineering
 
             foreach (var tc in _tableColumns.Values)
             {
+                var table = _tables[tc.TableId];
+                if (!_tableSelectionSet.Allows(table.SchemaName, table.TableName))
+                {
+                    continue;
+                }
                 EntityType entityType;
                 if (!_tableIdToEntityType.TryGetValue(tc.TableId, out entityType))
                 {
@@ -399,7 +408,7 @@ namespace Microsoft.Data.Entity.SqlServer.Design.ReverseEngineering
                 }
                 else
                 {
-                    property.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.IdentityColumn;
+                    property.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.IdentityColumn;
                 }
             }
 
@@ -450,6 +459,13 @@ namespace Microsoft.Data.Entity.SqlServer.Design.ReverseEngineering
                 Logger.LogWarning(
                     Strings.CannotFindForeignKeyMappingForConstraintId(
                         foreignKeyConstraintId, fromColumnId));
+                return null;
+            }
+
+            var toTable = _tables[_tableColumns[foreignKeyColumnMapping.ToColumnId].TableId];
+            if (!_tableSelectionSet.Allows(toTable.SchemaName, toTable.TableName))
+            {
+                // target property belongs to a table which was excluded by the TableSelectionSet
                 return null;
             }
 

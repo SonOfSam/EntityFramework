@@ -5,6 +5,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Metadata.Conventions;
+using Microsoft.Data.Entity.Storage.Internal;
 using Microsoft.Data.Entity.Tests;
 using Microsoft.Framework.DependencyInjection;
 using Xunit;
@@ -30,24 +31,6 @@ namespace Microsoft.Data.Entity.InMemory.Tests
         }
 
         [Fact]
-        public void EnsureCreated_returns_true_for_first_use_of_non_persistent_database_and_false_thereafter()
-        {
-            var serviceProvider = InMemoryTestHelpers.Instance.CreateServiceProvider();
-            var model = CreateModel();
-            var creator = new InMemoryDatabaseCreator(CreateStore(serviceProvider, persist: false), model);
-
-            Assert.True(creator.EnsureCreated());
-            Assert.False(creator.EnsureCreated());
-            Assert.False(creator.EnsureCreated());
-
-            creator = new InMemoryDatabaseCreator(CreateStore(serviceProvider, persist: false), model);
-
-            Assert.True(creator.EnsureCreated());
-            Assert.False(creator.EnsureCreated());
-            Assert.False(creator.EnsureCreated());
-        }
-
-        [Fact]
         public async Task EnsureCreatedAsync_returns_true_for_first_use_of_persistent_database_and_false_thereafter()
         {
             var serviceProvider = InMemoryTestHelpers.Instance.CreateServiceProvider();
@@ -63,28 +46,10 @@ namespace Microsoft.Data.Entity.InMemory.Tests
             Assert.False(await creator.EnsureCreatedAsync());
         }
 
-        [Fact]
-        public async Task EnsureCreatedAsync_returns_true_for_first_use_of_non_persistent_database_and_false_thereafter()
-        {
-            var serviceProvider = InMemoryTestHelpers.Instance.CreateServiceProvider();
-            var model = CreateModel();
-            var creator = new InMemoryDatabaseCreator(CreateStore(serviceProvider, persist: false), model);
-
-            Assert.True(await creator.EnsureCreatedAsync());
-            Assert.False(await creator.EnsureCreatedAsync());
-            Assert.False(await creator.EnsureCreatedAsync());
-
-            creator = new InMemoryDatabaseCreator(CreateStore(serviceProvider, persist: false), model);
-
-            Assert.True(await creator.EnsureCreatedAsync());
-            Assert.False(await creator.EnsureCreatedAsync());
-            Assert.False(await creator.EnsureCreatedAsync());
-        }
-
         private static IInMemoryDatabase CreateStore(IServiceProvider serviceProvider, bool persist)
         {
             var optionsBuilder = new DbContextOptionsBuilder();
-            optionsBuilder.UseInMemoryDatabase(persist: persist);
+            optionsBuilder.UseInMemoryDatabase();
 
             return InMemoryTestHelpers.Instance.CreateContextServices(serviceProvider, optionsBuilder.Options).GetRequiredService<IInMemoryDatabase>();
         }
@@ -163,7 +128,7 @@ namespace Microsoft.Data.Entity.InMemory.Tests
 
             modelBuilder.Entity<Test>(b =>
                 {
-                    b.Key(c => c.Id);
+                    b.HasKey(c => c.Id);
                     b.Property(c => c.Name);
                 });
 

@@ -1,7 +1,6 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using Microsoft.Data.Entity.FunctionalTests;
 using Microsoft.Data.Entity.FunctionalTests.TestModels.NorthwindSproc;
 
 namespace Microsoft.Data.Entity.FunctionalTests
@@ -12,8 +11,8 @@ namespace Microsoft.Data.Entity.FunctionalTests
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<CustomerOrderHistory>().Key(coh => coh.ProductName);
-            modelBuilder.Entity<MostExpensiveProduct>().Key(mep => mep.TenMostExpensiveProducts);
+            modelBuilder.Entity<CustomerOrderHistory>().HasKey(coh => coh.ProductName);
+            modelBuilder.Entity<MostExpensiveProduct>().HasKey(mep => mep.TenMostExpensiveProducts);
         }
     }
 }

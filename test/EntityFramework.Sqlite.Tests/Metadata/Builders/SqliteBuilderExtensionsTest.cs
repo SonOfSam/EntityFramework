@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 using Microsoft.Data.Entity.Metadata.Conventions;
-using Microsoft.Data.Entity.Metadata.Conventions.Internal;
 using Xunit;
 
 namespace Microsoft.Data.Entity.Sqlite.Metadata.Builders
@@ -101,7 +100,7 @@ namespace Microsoft.Data.Entity.Sqlite.Metadata.Builders
 
             var key = modelBuilder
                 .Entity<Customer>()
-                .Key(e => e.Id)
+                .HasKey(e => e.Id)
                 .SqliteKeyName("LemonSupreme")
                 .Metadata;
 
@@ -114,7 +113,7 @@ namespace Microsoft.Data.Entity.Sqlite.Metadata.Builders
             var modelBuilder = new ModelBuilder(new ConventionSet());
 
             var foreignKey = modelBuilder
-                .Entity<Customer>().Collection(e => e.Orders).InverseReference(e => e.Customer)
+                .Entity<Customer>().HasMany(e => e.Orders).WithOne(e => e.Customer)
                 .SqliteConstraintName("ChocolateLimes")
                 .Metadata;
 
@@ -127,7 +126,7 @@ namespace Microsoft.Data.Entity.Sqlite.Metadata.Builders
             var modelBuilder = new ModelBuilder(new ConventionSet());
 
             var foreignKey = modelBuilder
-                .Entity<Customer>().Collection(typeof(Order)).InverseReference()
+                .Entity<Customer>().HasMany(typeof(Order)).WithOne()
                 .SqliteConstraintName("ChocolateLimes")
                 .Metadata;
 
@@ -140,7 +139,7 @@ namespace Microsoft.Data.Entity.Sqlite.Metadata.Builders
             var modelBuilder = new ModelBuilder(new ConventionSet());
 
             var foreignKey = modelBuilder
-                .Entity<Order>().Reference(e => e.Customer).InverseCollection(e => e.Orders)
+                .Entity<Order>().HasOne(e => e.Customer).WithMany(e => e.Orders)
                 .SqliteConstraintName("ChocolateLimes")
                 .Metadata;
 
@@ -153,7 +152,7 @@ namespace Microsoft.Data.Entity.Sqlite.Metadata.Builders
             var modelBuilder = new ModelBuilder(new ConventionSet());
 
             var foreignKey = modelBuilder
-                .Entity<Order>().Reference(typeof(Customer)).InverseCollection()
+                .Entity<Order>().HasOne(typeof(Customer)).WithMany()
                 .SqliteConstraintName("ChocolateLimes")
                 .Metadata;
 
@@ -166,7 +165,7 @@ namespace Microsoft.Data.Entity.Sqlite.Metadata.Builders
             var modelBuilder = new ModelBuilder(new ConventionSet());
 
             var foreignKey = modelBuilder
-                .Entity<Order>().Reference(e => e.Details).InverseReference(e => e.Order)
+                .Entity<Order>().HasOne(e => e.Details).WithOne(e => e.Order)
                 .SqliteConstraintName("ChocolateLimes")
                 .Metadata;
 
@@ -179,7 +178,7 @@ namespace Microsoft.Data.Entity.Sqlite.Metadata.Builders
             var modelBuilder = new ModelBuilder(new ConventionSet());
 
             var foreignKey = modelBuilder
-                .Entity<Order>().Reference(typeof(OrderDetails)).InverseReference()
+                .Entity<Order>().HasOne(typeof(OrderDetails)).WithOne()
                 .SqliteConstraintName("ChocolateLimes")
                 .Metadata;
 

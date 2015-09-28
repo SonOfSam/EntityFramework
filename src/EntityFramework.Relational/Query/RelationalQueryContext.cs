@@ -6,9 +6,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Microsoft.Data.Entity.Query.Internal;
 using Microsoft.Data.Entity.Storage;
 using Microsoft.Data.Entity.Utilities;
-using Microsoft.Framework.Logging;
 
 namespace Microsoft.Data.Entity.Query
 {
@@ -20,12 +20,9 @@ namespace Microsoft.Data.Entity.Query
         private int _activeIncludeQueryOffset;
 
         public RelationalQueryContext(
-            [NotNull] ILogger logger,
             [NotNull] IQueryBuffer queryBuffer,
             [NotNull] IRelationalConnection connection)
-            : base(
-                Check.NotNull(logger, nameof(logger)),
-                Check.NotNull(queryBuffer, nameof(queryBuffer)))
+            : base(Check.NotNull(queryBuffer, nameof(queryBuffer)))
         {
             Check.NotNull(connection, nameof(connection));
 
@@ -46,7 +43,8 @@ namespace Microsoft.Data.Entity.Query
 
             _activeQueries.Add(valueBufferCursor);
 
-            if (queryIndex.HasValue && queryIndex.Value > 0)
+            if (queryIndex.HasValue
+                && queryIndex.Value > 0)
             {
                 AddBufferCursorToIncludeQueriesList(valueBufferCursor, queryIndex.Value);
             }
@@ -65,7 +63,8 @@ namespace Microsoft.Data.Entity.Query
 
             _activeQueries.Add(valueBufferCursor);
 
-            if (queryIndex.HasValue && queryIndex.Value > 0)
+            if (queryIndex.HasValue
+                && queryIndex.Value > 0)
             {
                 AddBufferCursorToIncludeQueriesList(valueBufferCursor, queryIndex.Value);
             }
@@ -76,7 +75,7 @@ namespace Microsoft.Data.Entity.Query
             if (includeQueryIndex > _activeIncludeQueries.Count)
             {
                 var missingEntries = includeQueryIndex - _activeIncludeQueries.Count;
-                for (int i = 0; i < missingEntries; i++)
+                for (var i = 0; i < missingEntries; i++)
                 {
                     _activeIncludeQueries.Add(null);
                 }
@@ -100,7 +99,7 @@ namespace Microsoft.Data.Entity.Query
 
         public virtual ValueBuffer GetIncludeValueBuffer(int queryIndex)
         {
-            return queryIndex == 0 
+            return queryIndex == 0
                 ? _activeQueries[_activeIncludeQueryOffset + queryIndex].Current
                 : _activeIncludeQueries[queryIndex - 1].Current;
         }

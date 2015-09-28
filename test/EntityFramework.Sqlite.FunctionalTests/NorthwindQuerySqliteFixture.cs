@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Threading;
 using Microsoft.Data.Entity.FunctionalTests;
 using Microsoft.Data.Entity.FunctionalTests.TestModels.Northwind;
 using Microsoft.Data.Entity.Infrastructure;
@@ -15,35 +16,53 @@ namespace Microsoft.Data.Entity.Sqlite.FunctionalTests
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly DbContextOptions _options;
-        private readonly SqliteTestStore _testStore;
+
+        private readonly SqliteTestStore _testStore = SqliteNorthwindContext.GetSharedStore();
+        private readonly TestSqlLoggerFactory _testSqlLoggerFactory = new TestSqlLoggerFactory();
 
         public NorthwindQuerySqliteFixture()
         {
-            _testStore = SqliteNorthwindContext.GetSharedStore();
+            _serviceProvider
+                = new ServiceCollection()
+                    .AddEntityFramework()
+                    .AddSqlite()
+                    .ServiceCollection()
+                    .AddSingleton(TestSqliteModelSource.GetFactory(OnModelCreating))
+                    .AddInstance<ILoggerFactory>(_testSqlLoggerFactory)
+                    .BuildServiceProvider();
 
-            _serviceProvider = new ServiceCollection()
-                .AddEntityFramework()
-                .AddSqlite()
-                .ServiceCollection()
-                .AddSingleton(TestSqliteModelSource.GetFactory(OnModelCreating))
-                .AddInstance<ILoggerFactory>(new TestSqlLoggerFactory())
-                .BuildServiceProvider();
+            _options = BuildOptions();
 
+            _serviceProvider.GetRequiredService<ILoggerFactory>().MinimumLevel = LogLevel.Debug;
+        }
+
+        protected DbContextOptions BuildOptions()
+        {
             var optionsBuilder = new DbContextOptionsBuilder();
-            optionsBuilder.UseSqlite(_testStore.Connection.ConnectionString);
-            _options = optionsBuilder.Options;
 
-            _serviceProvider.GetRequiredService<ILoggerFactory>()
-                .MinimumLevel = LogLevel.Debug;
+            var sqliteDbContextOptionsBuilder
+                = optionsBuilder.UseSqlite(_testStore.Connection.ConnectionString);
+
+            ConfigureOptions(sqliteDbContextOptionsBuilder);
+
+            return optionsBuilder.Options;
+        }
+
+        protected virtual void ConfigureOptions(SqliteDbContextOptionsBuilder sqliteDbContextOptionsBuilder)
+        {
         }
 
         public override NorthwindContext CreateContext()
         {
             var context = new SqliteNorthwindContext(_serviceProvider, _options);
+
             context.ChangeTracker.AutoDetectChangesEnabled = false;
+
             return context;
         }
 
         public void Dispose() => _testStore.Dispose();
+
+        public override CancellationToken CancelQuery() => _testSqlLoggerFactory.CancelQuery();
     }
 }

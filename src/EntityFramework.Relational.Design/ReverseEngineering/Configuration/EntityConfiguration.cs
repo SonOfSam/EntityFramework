@@ -22,8 +22,8 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
             EntityType = entityType;
         }
 
-        public virtual ModelConfiguration ModelConfiguration { get;[param: NotNull] private set; }
-        public virtual IEntityType EntityType { get; [param: NotNull] private set; }
+        public virtual ModelConfiguration ModelConfiguration { get; }
+        public virtual IEntityType EntityType { get; }
         public virtual List<IAttributeConfiguration> AttributeConfigurations { get; } = new List<IAttributeConfiguration>();
         public virtual List<IFluentApiConfiguration> FluentApiConfigurations { get; } = new List<IFluentApiConfiguration>();
         public virtual List<PropertyConfiguration> PropertyConfigurations { get; } = new List<PropertyConfiguration>();
@@ -35,14 +35,6 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
 
         public virtual string ErrorMessageAnnotation
             => (string)EntityType[RelationalMetadataModelProvider.AnnotationNameEntityTypeError];
-
-        public virtual List<IFluentApiConfiguration> NonAttributeFluentApiConfigurations
-        {
-            get
-            {
-                return FluentApiConfigurations.Where(fc => !fc.HasAttributeEquivalent).ToList();
-            }
-        }
 
         public virtual PropertyConfiguration FindPropertyConfiguration([NotNull] Property property)
         {
@@ -67,25 +59,26 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configurati
             return propertyConfiguration;
         }
 
-        public virtual List<IFluentApiConfiguration> GetFluentApiConfigurations(bool useAttributesOverFluentApi)
+        public virtual List<IFluentApiConfiguration> GetFluentApiConfigurations(bool useFluentApiOnly)
         {
-            return (useAttributesOverFluentApi
-                ? FluentApiConfigurations.Where(flc => !flc.HasAttributeEquivalent)
-                : FluentApiConfigurations)
+            return (useFluentApiOnly
+                ? FluentApiConfigurations
+                : FluentApiConfigurations.Where(flc => !flc.HasAttributeEquivalent))
                 .ToList();
         }
 
-        public virtual List<PropertyConfiguration> GetPropertyConfigurations(bool useAttributesOverFluentApi)
+        public virtual List<PropertyConfiguration> GetPropertyConfigurations(bool useFluentApiOnly)
         {
             return PropertyConfigurations
-                .Where(pc => pc.GetFluentApiConfigurations(useAttributesOverFluentApi).Any()).ToList();
+                .Where(pc => pc.GetFluentApiConfigurations(useFluentApiOnly).Any()).ToList();
         }
 
-        public virtual List<RelationshipConfiguration> GetRelationshipConfigurations(bool useAttributesOverFluentApi)
+        public virtual List<RelationshipConfiguration> GetRelationshipConfigurations(bool useFluentApiOnly)
         {
-            return useAttributesOverFluentApi
-                ? Enumerable.Empty<RelationshipConfiguration>().ToList()
-                : RelationshipConfigurations;
+            return (useFluentApiOnly
+                ? RelationshipConfigurations
+                : Enumerable.Empty<RelationshipConfiguration>())
+                .ToList();
         }
     }
 }

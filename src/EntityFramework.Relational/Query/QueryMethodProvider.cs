@@ -8,7 +8,9 @@ using System.Reflection;
 using JetBrains.Annotations;
 using Microsoft.Data.Entity.ChangeTracking.Internal;
 using Microsoft.Data.Entity.Metadata;
+using Microsoft.Data.Entity.Query.Internal;
 using Microsoft.Data.Entity.Storage;
+using Microsoft.Framework.Logging;
 using Remotion.Linq.Clauses;
 
 namespace Microsoft.Data.Entity.Query
@@ -95,13 +97,16 @@ namespace Microsoft.Data.Entity.Query
 
         [UsedImplicitly]
         private static IEnumerable<T> _ShapedQuery<T>(
-            QueryContext queryContext, CommandBuilder commandBuilder, Func<ValueBuffer, T> shaper)
+            QueryContext queryContext,
+            CommandBuilder commandBuilder,
+            ILogger logger,
+            Func<ValueBuffer, T> shaper)
             => new QueryingEnumerable(
-                    ((RelationalQueryContext)queryContext),
-                    commandBuilder,
-                    /*queryIndex*/ null,
-                    queryContext.Logger)
-                    .Select(shaper);
+                (RelationalQueryContext)queryContext,
+                commandBuilder,
+                logger,
+                queryIndex: null)
+                .Select(shaper);
 
         public virtual MethodInfo QueryMethod => _queryMethodInfo;
 
@@ -111,17 +116,15 @@ namespace Microsoft.Data.Entity.Query
 
         [UsedImplicitly]
         private static IEnumerable<ValueBuffer> _Query(
-            QueryContext queryContext, 
+            QueryContext queryContext,
             CommandBuilder commandBuilder,
+            ILogger logger,
             int? queryIndex)
-        {
-            return
-                new QueryingEnumerable(
-                    ((RelationalQueryContext)queryContext),
-                    commandBuilder,
-                    queryIndex,
-                    queryContext.Logger);
-        }
+            => new QueryingEnumerable(
+                ((RelationalQueryContext)queryContext),
+                commandBuilder,
+                logger,
+                queryIndex);
 
         public virtual MethodInfo IncludeMethod => _includeMethodInfo;
 
@@ -176,7 +179,8 @@ namespace Microsoft.Data.Entity.Query
 
         public virtual Type IncludeRelatedValuesFactoryType => typeof(Func<IIncludeRelatedValuesStrategy>);
 
-        public virtual MethodInfo CreateReferenceIncludeRelatedValuesStrategyMethod => _createReferenceIncludeStrategyMethodInfo;
+        public virtual MethodInfo CreateReferenceIncludeRelatedValuesStrategyMethod 
+            => _createReferenceIncludeStrategyMethodInfo;
 
         private static readonly MethodInfo _createReferenceIncludeStrategyMethodInfo
             = typeof(QueryMethodProvider).GetTypeInfo()
@@ -187,11 +191,9 @@ namespace Microsoft.Data.Entity.Query
             RelationalQueryContext relationalQueryContext,
             int valueBufferOffset,
             int queryIndex,
-            Func<ValueBuffer, object> materializer)
-        {
-            return new ReferenceIncludeRelatedValuesStrategy(
+            Func<ValueBuffer, object> materializer) 
+            => new ReferenceIncludeRelatedValuesStrategy(
                 relationalQueryContext, valueBufferOffset, queryIndex, materializer);
-        }
 
         private class ReferenceIncludeRelatedValuesStrategy : IIncludeRelatedValuesStrategy
         {
@@ -225,7 +227,8 @@ namespace Microsoft.Data.Entity.Query
             }
         }
 
-        public virtual MethodInfo CreateCollectionIncludeRelatedValuesStrategyMethod => _createCollectionIncludeStrategyMethodInfo;
+        public virtual MethodInfo CreateCollectionIncludeRelatedValuesStrategyMethod 
+            => _createCollectionIncludeStrategyMethodInfo;
 
         private static readonly MethodInfo _createCollectionIncludeStrategyMethodInfo
             = typeof(QueryMethodProvider).GetTypeInfo()
@@ -234,9 +237,7 @@ namespace Microsoft.Data.Entity.Query
         [UsedImplicitly]
         private static IIncludeRelatedValuesStrategy _CreateCollectionIncludeStrategy(
             IEnumerable<ValueBuffer> relatedValueBuffers, Func<ValueBuffer, object> materializer)
-        {
-            return new CollectionIncludeRelatedValuesStrategy(relatedValueBuffers, materializer);
-        }
+            => new CollectionIncludeRelatedValuesStrategy(relatedValueBuffers, materializer);
 
         private class CollectionIncludeRelatedValuesStrategy : IIncludeRelatedValuesStrategy
         {
@@ -259,10 +260,7 @@ namespace Microsoft.Data.Entity.Query
                         .Select(vr => new EntityLoadInfo(vr, _materializer));
             }
 
-            public void Dispose()
-            {
-                _includeCollectionIterator.Dispose();
-            }
+            public void Dispose() => _includeCollectionIterator.Dispose();
         }
     }
 }

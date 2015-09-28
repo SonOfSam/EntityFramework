@@ -24,7 +24,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("ID");
-                            x.Key("ID");
+                            x.HasKey("ID");
                             x.Property<int>("FK");
                         });
 
@@ -33,12 +33,12 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("ID");
-                            x.Key("ID");
+                            x.HasKey("ID");
                             x.Property<int>("FK");
                         });
 
-                    modelBuilder.Entity("First").Reference("Second").InverseCollection().ForeignKey("FK").PrincipalKey("ID");
-                    modelBuilder.Entity("Second").Reference("First").InverseCollection().ForeignKey("FK").PrincipalKey("ID");
+                    modelBuilder.Entity("First").HasOne("Second").WithMany().ForeignKey("FK").PrincipalKey("ID");
+                    modelBuilder.Entity("Second").HasOne("First").WithMany().ForeignKey("FK").PrincipalKey("ID");
                 },
                 result =>
                 {
@@ -69,7 +69,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("FourthId");
                         });
                     modelBuilder.Entity(
@@ -77,12 +77,12 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("ThirdId");
                         });
 
-                    modelBuilder.Entity("Third").Reference("Fourth").InverseCollection().ForeignKey("FourthId");
-                    modelBuilder.Entity("Fourth").Reference("Third").InverseCollection().ForeignKey("ThirdId");
+                    modelBuilder.Entity("Third").HasOne("Fourth").WithMany().ForeignKey("FourthId");
+                    modelBuilder.Entity("Fourth").HasOne("Third").WithMany().ForeignKey("ThirdId");
                 },
                 _ => { },
                 operations =>
@@ -106,11 +106,11 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Node", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("AltId");
-                        x.AlternateKey("AltId");
+                        x.HasAlternateKey("AltId");
                         x.Property<int?>("ParentAltId");
-                        x.Reference("Node").InverseCollection().ForeignKey("ParentAltId");
+                        x.HasOne("Node").WithMany().ForeignKey("ParentAltId");
                         x.Index("ParentAltId");
                     }),
                 operations =>
@@ -159,7 +159,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Cat", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 target => target.Entity(
                     "Cat",
@@ -167,7 +167,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Cats", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 operations =>
                 {
@@ -191,14 +191,14 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("People", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 target => target.Entity("Person",
                     x =>
                     {
                         x.ToTable("People", "public");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 operations =>
                 {
@@ -224,7 +224,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id").Name("PK_Dog");
+                        x.HasKey("Id").Name("PK_Dog");
                     }),
                 target => target.Entity(
                     "Doge",
@@ -232,7 +232,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Dog");
                         x.Property<int>("Id");
-                        x.Key("Id").Name("PK_Dog");
+                        x.HasKey("Id").Name("PK_Dog");
                     }),
                 operations => Assert.Empty(operations));
         }
@@ -247,7 +247,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Dragon", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 target => target.Entity(
                     "Dragon",
@@ -255,10 +255,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Dragon", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name")
                             .HasColumnType("nvarchar(30)")
-                            .Required()
+                            .IsRequired()
                             .HasDefaultValue("Draco")
                             .HasDefaultValueSql("CreateDragonName()");
                     }),
@@ -288,7 +288,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Dragon", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 target => target.Entity(
                     "Dragon",
@@ -296,10 +296,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Dragon", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name")
                             .HasColumnType("nvarchar(30)")
-                            .Required()
+                            .IsRequired()
                             .HasDefaultValue("Draco")
                             .HasComputedColumnSql("CreateDragonName()");
                     }),
@@ -332,15 +332,15 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 target => target.Entity(
                     "Robin",
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
-                        x.Property(type, "Value").Required();
+                        x.HasKey("Id");
+                        x.Property(type, "Value").IsRequired();
                     }),
                 operations =>
                 {
@@ -363,7 +363,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Firefly", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name").HasColumnType("nvarchar(30)");
                     }),
                 target => target.Entity(
@@ -372,7 +372,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Firefly", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 operations =>
                 {
@@ -395,7 +395,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Zebra", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name").HasColumnType("nvarchar(30)");
                     }),
                 target => target.Entity(
@@ -404,7 +404,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Zebra", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name").HasColumnName("ZebraName").HasColumnType("nvarchar(30)");
                     }),
                 operations =>
@@ -429,7 +429,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Buffalo", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("BuffaloName").HasColumnType("nvarchar(30)");
                     }),
                 target => target.Entity(
@@ -438,7 +438,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Buffalo", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name").HasColumnName("BuffaloName").HasColumnType("nvarchar(30)");
                     }),
                 operations => Assert.Empty(operations));
@@ -454,10 +454,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Bison", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name")
                             .HasColumnType("nvarchar(30)")
-                            .Required(true)
+                            .IsRequired(true)
                             .HasDefaultValue("Buffy")
                             .HasDefaultValueSql("CreateBisonName()");
                     }),
@@ -467,10 +467,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Bison", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name")
                             .HasColumnType("nvarchar(30)")
-                            .Required(false)
+                            .IsRequired(false)
                             .HasDefaultValue("Buffy")
                             .HasDefaultValueSql("CreateBisonName()");
                     }),
@@ -500,10 +500,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Puma", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name")
                             .HasColumnType("nvarchar(30)")
-                            .Required()
+                            .IsRequired()
                             .HasDefaultValue("Puff")
                             .HasDefaultValueSql("CreatePumaName()");
                     }),
@@ -513,10 +513,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Puma", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name")
                             .HasColumnType("nvarchar(450)")
-                            .Required()
+                            .IsRequired()
                             .HasDefaultValue("Puff")
                             .HasDefaultValueSql("CreatePumaName()");
                     }),
@@ -546,10 +546,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Cougar", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name")
                             .HasColumnType("nvarchar(30)")
-                            .Required()
+                            .IsRequired()
                             .HasDefaultValue("Butch")
                             .HasDefaultValueSql("CreateCougarName()");
                     }),
@@ -559,10 +559,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Cougar", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name")
                             .HasColumnType("nvarchar(30)")
-                            .Required()
+                            .IsRequired()
                             .HasDefaultValue("Cosmo")
                             .HasDefaultValueSql("CreateCougarName()");
                     }),
@@ -592,10 +592,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("MountainLion", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name")
                             .HasColumnType("nvarchar(30)")
-                            .Required()
+                            .IsRequired()
                             .HasDefaultValue("Liam")
                             .HasDefaultValueSql("CreateMountainLionName()");
                     }),
@@ -605,10 +605,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("MountainLion", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name")
                             .HasColumnType("nvarchar(30)")
-                            .Required()
+                            .IsRequired()
                             .HasDefaultValue("Liam")
                             .HasDefaultValueSql("CreateCatamountName()");
                     }),
@@ -638,10 +638,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("MountainLion", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name")
                             .HasColumnType("nvarchar(30)")
-                            .Required()
+                            .IsRequired()
                             .HasDefaultValue("Liam")
                             .HasComputedColumnSql("CreateMountainLionName()");
                     }),
@@ -651,10 +651,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("MountainLion", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name")
                             .HasColumnType("nvarchar(30)")
-                            .Required()
+                            .IsRequired()
                             .HasDefaultValue("Liam")
                             .HasComputedColumnSql("CreateCatamountName()");
                     }),
@@ -684,7 +684,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Flamingo", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("AlternateId");
                     }),
                 target => target.Entity(
@@ -693,9 +693,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Flamingo", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("AlternateId");
-                        x.AlternateKey("AlternateId");
+                        x.HasAlternateKey("AlternateId");
                     }),
                 operations =>
                 {
@@ -719,9 +719,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Penguin", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("AlternateId");
-                        x.AlternateKey("AlternateId");
+                        x.HasAlternateKey("AlternateId");
                     }),
                 target => target.Entity(
                     "Penguin",
@@ -729,7 +729,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Penguin", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("AlternateId");
                     }),
                 operations =>
@@ -753,9 +753,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Pelican", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("AlternateId");
-                        x.AlternateKey("AlternateId");
+                        x.HasAlternateKey("AlternateId");
                     }),
                 target => target.Entity(
                     "Pelican",
@@ -763,9 +763,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Pelican", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("AlternateId");
-                        x.AlternateKey("AlternateId").Name("AK_dbo.Pelican_AlternateId");
+                        x.HasAlternateKey("AlternateId").Name("AK_dbo.Pelican_AlternateId");
                     }),
                 operations =>
                 {
@@ -794,9 +794,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Rook", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("AlternateId");
-                        x.AlternateKey("AlternateId");
+                        x.HasAlternateKey("AlternateId");
                         x.Property<int>("AlternateRookId");
                     }),
                 target => target.Entity(
@@ -805,10 +805,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Rook", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("AlternateId");
                         x.Property<int>("AlternateRookId");
-                        x.AlternateKey("AlternateRookId").Name("AK_Rook_AlternateId");
+                        x.HasAlternateKey("AlternateRookId").Name("AK_Rook_AlternateId");
                     }),
                 operations =>
                 {
@@ -837,7 +837,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Puffin", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 target => target.Entity(
                     "Puffin",
@@ -845,7 +845,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Puffin", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id").Name("PK_dbo.Puffin");
+                        x.HasKey("Id").Name("PK_dbo.Puffin");
                     }),
                 operations =>
                 {
@@ -874,7 +874,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Raven", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("RavenId");
                     }),
                 target => target.Entity(
@@ -884,7 +884,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x.ToTable("Raven", "dbo");
                         x.Property<int>("Id");
                         x.Property<int>("RavenId");
-                        x.Key("RavenId");
+                        x.HasKey("RavenId");
                     }),
                 operations =>
                 {
@@ -913,7 +913,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Amoeba", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId");
                     }),
                 target => target.Entity(
@@ -922,9 +922,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Amoeba", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId");
-                        x.Reference("Amoeba").InverseCollection().ForeignKey("ParentId");
+                        x.HasOne("Amoeba").WithMany().ForeignKey("ParentId");
                     }),
                 operations =>
                 {
@@ -938,6 +938,48 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     Assert.Equal("dbo", operation.PrincipalSchema);
                     Assert.Equal("Amoeba", operation.PrincipalTable);
                     Assert.Equal(new[] { "Id" }, operation.PrincipalColumns);
+                    Assert.Equal(ReferentialAction.NoAction, operation.OnDelete);
+                    Assert.Equal(ReferentialAction.NoAction, operation.OnUpdate);
+                });
+        }
+
+        [Fact]
+        public void Add_foreign_key_with_cascade_delete()
+        {
+            Execute(
+                source => source.Entity(
+                    "Amoeba",
+                    x =>
+                    {
+                        x.ToTable("Amoeba", "dbo");
+                        x.Property<int>("Id");
+                        x.HasKey("Id");
+                        x.Property<int>("ParentId");
+                    }),
+                target => target.Entity(
+                    "Amoeba",
+                    x =>
+                    {
+                        x.ToTable("Amoeba", "dbo");
+                        x.Property<int>("Id");
+                        x.HasKey("Id");
+                        x.Property<int>("ParentId");
+                        x.HasOne("Amoeba").WithMany().ForeignKey("ParentId").WillCascadeOnDelete();
+                    }),
+                operations =>
+                {
+                    Assert.Equal(1, operations.Count);
+
+                    var operation = Assert.IsType<AddForeignKeyOperation>(operations[0]);
+                    Assert.Equal("dbo", operation.Schema);
+                    Assert.Equal("Amoeba", operation.Table);
+                    Assert.Equal("FK_Amoeba_Amoeba_ParentId", operation.Name);
+                    Assert.Equal(new[] { "ParentId" }, operation.Columns);
+                    Assert.Equal("dbo", operation.PrincipalSchema);
+                    Assert.Equal("Amoeba", operation.PrincipalTable);
+                    Assert.Equal(new[] { "Id" }, operation.PrincipalColumns);
+                    Assert.Equal(ReferentialAction.Cascade, operation.OnDelete);
+                    Assert.Equal(ReferentialAction.NoAction, operation.OnUpdate);
                 });
         }
 
@@ -951,9 +993,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Anemone", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId");
-                        x.Reference("Anemone").InverseCollection().ForeignKey("ParentId");
+                        x.HasOne("Anemone").WithMany().ForeignKey("ParentId");
                     }),
                 target => target.Entity(
                     "Anemone",
@@ -961,7 +1003,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Anemone", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId");
                     }),
                 operations =>
@@ -985,9 +1027,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Nematode", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId");
-                        x.Reference("Nematode").InverseCollection().ForeignKey("ParentId");
+                        x.HasOne("Nematode").WithMany().ForeignKey("ParentId");
                     }),
                 target => target.Entity(
                     "Nematode",
@@ -995,9 +1037,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Nematode", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId");
-                        x.Reference("Nematode").InverseCollection().ForeignKey("ParentId").ConstraintName("FK_Nematode_NematodeParent");
+                        x.HasOne("Nematode").WithMany().ForeignKey("ParentId").ConstraintName("FK_Nematode_NematodeParent");
                     }),
                 operations =>
                 {
@@ -1029,9 +1071,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Mushroom", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId1");
-                        x.Reference("Mushroom").InverseCollection().ForeignKey("ParentId1");
+                        x.HasOne("Mushroom").WithMany().ForeignKey("ParentId1");
                         x.Property<int>("ParentId2");
                     }),
                 target => target.Entity(
@@ -1040,10 +1082,10 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Mushroom", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId1");
                         x.Property<int>("ParentId2");
-                        x.Reference("Mushroom").InverseCollection().ForeignKey("ParentId2").ConstraintName("FK_Mushroom_Mushroom_ParentId1");
+                        x.HasOne("Mushroom").WithMany().ForeignKey("ParentId2").ConstraintName("FK_Mushroom_Mushroom_ParentId1");
                     }),
                 operations =>
                 {
@@ -1066,6 +1108,54 @@ namespace Microsoft.Data.Entity.Migrations.Internal
         }
 
         [Fact]
+        public void Alter_foreign_key_cascade_delete()
+        {
+            Execute(
+                source => source.Entity(
+                    "Mushroom",
+                    x =>
+                    {
+                        x.ToTable("Mushroom", "dbo");
+                        x.Property<int>("Id");
+                        x.HasKey("Id");
+                        x.Property<int>("ParentId1");
+                        x.HasOne("Mushroom").WithMany().ForeignKey("ParentId1");
+                        x.Property<int>("ParentId2");
+                    }),
+                target => target.Entity(
+                    "Mushroom",
+                    x =>
+                    {
+                        x.ToTable("Mushroom", "dbo");
+                        x.Property<int>("Id");
+                        x.HasKey("Id");
+                        x.Property<int>("ParentId1");
+                        x.HasOne("Mushroom").WithMany().ForeignKey("ParentId1").WillCascadeOnDelete();
+                        x.Property<int>("ParentId2");
+                    }),
+                operations =>
+                {
+                    Assert.Equal(2, operations.Count);
+
+                    var dropOperation = Assert.IsType<DropForeignKeyOperation>(operations[0]);
+                    Assert.Equal("dbo", dropOperation.Schema);
+                    Assert.Equal("Mushroom", dropOperation.Table);
+                    Assert.Equal("FK_Mushroom_Mushroom_ParentId1", dropOperation.Name);
+
+                    var addOperation = Assert.IsType<AddForeignKeyOperation>(operations[1]);
+                    Assert.Equal("dbo", addOperation.Schema);
+                    Assert.Equal("Mushroom", addOperation.Table);
+                    Assert.Equal("FK_Mushroom_Mushroom_ParentId1", addOperation.Name);
+                    Assert.Equal(new[] { "ParentId1" }, addOperation.Columns);
+                    Assert.Equal("dbo", addOperation.PrincipalSchema);
+                    Assert.Equal("Mushroom", addOperation.PrincipalTable);
+                    Assert.Equal(new[] { "Id" }, addOperation.PrincipalColumns);
+                    Assert.Equal(ReferentialAction.Cascade, addOperation.OnDelete);
+                    Assert.Equal(ReferentialAction.NoAction, addOperation.OnUpdate);
+                });
+        }
+
+        [Fact]
         public void Alter_foreign_key_target()
         {
             Execute(
@@ -1077,7 +1167,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Lion", "odb");
                             x.Property<int>("LionId");
-                            x.Key("LionId");
+                            x.HasKey("LionId");
                         });
                     source.Entity(
                         "Tiger",
@@ -1085,7 +1175,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Tiger", "bod");
                             x.Property<int>("TigerId");
-                            x.Key("TigerId");
+                            x.HasKey("TigerId");
                         });
                     source.Entity(
                         "Liger",
@@ -1093,9 +1183,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Liger", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("ParentId");
-                            x.Reference("Lion").InverseCollection().ForeignKey("ParentId");
+                            x.HasOne("Lion").WithMany().ForeignKey("ParentId");
                         });
                 },
                 target =>
@@ -1106,7 +1196,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Lion", "odb");
                             x.Property<int>("LionId");
-                            x.Key("LionId");
+                            x.HasKey("LionId");
                         });
                     target.Entity(
                         "Tiger",
@@ -1114,7 +1204,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Tiger", "bod");
                             x.Property<int>("TigerId");
-                            x.Key("TigerId");
+                            x.HasKey("TigerId");
                         });
                     target.Entity(
                         "Liger",
@@ -1122,9 +1212,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Liger", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("ParentId");
-                            x.Reference("Tiger").InverseCollection().ForeignKey("ParentId").ConstraintName("FK_Liger_Lion_ParentId");
+                            x.HasOne("Tiger").WithMany().ForeignKey("ParentId").ConstraintName("FK_Liger_Lion_ParentId");
                         });
                 },
                 operations =>
@@ -1157,7 +1247,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Hippo", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                     }),
                 target => target.Entity(
@@ -1166,7 +1256,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Hippo", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                         x.Index("Value").Unique();
                     }),
@@ -1193,7 +1283,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Horse", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                         x.Index("Value");
                     }),
@@ -1203,7 +1293,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Horse", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                     }),
                 operations =>
@@ -1227,7 +1317,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Donkey", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                         x.Index("Value");
                     }),
@@ -1237,7 +1327,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Donkey", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                         x.Index("Value").Name("IX_dbo.Donkey_Value");
                     }),
@@ -1263,7 +1353,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Muel", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                         x.Index("Value");
                         x.Property<int>("MuleValue");
@@ -1274,7 +1364,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Muel", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                         x.Property<int>("MuleValue");
                         x.Index("MuleValue").Name("IX_Muel_Value");
@@ -1306,7 +1396,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Pony", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                         x.Index("Value").Unique(false);
                     }),
@@ -1316,7 +1406,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Pony", "dbo");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                         x.Index("Value").Unique(true);
                     }),
@@ -1609,7 +1699,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int?>("Value");
                     }),
                 target => target.Entity(
@@ -1617,7 +1707,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                     }),
                 operations =>
@@ -1638,7 +1728,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                     }),
                 target => target.Entity(
@@ -1646,7 +1736,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int?>("Value");
                     }),
                 operations =>
@@ -1667,7 +1757,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                     }),
                 target => target.Entity(
@@ -1675,7 +1765,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value").HasColumnType("integer");
                     }),
                 operations =>
@@ -1696,14 +1786,14 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 target => target.Entity(
                     "Jaguar",
                     x =>
                     {
                         x.Property<string>("Name");
-                        x.Key("Name");
+                        x.HasKey("Name");
                     }),
                 operations => Assert.Collection(
                     operations,
@@ -1722,16 +1812,16 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 target => target.Entity(
                     "Panther",
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("AlternateId");
-                        x.AlternateKey("AlternateId");
+                        x.HasAlternateKey("AlternateId");
                     }),
                 operations => Assert.Collection(
                     operations,
@@ -1748,16 +1838,16 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("AlternateId");
-                        x.AlternateKey("AlternateId");
+                        x.HasAlternateKey("AlternateId");
                     }),
                 target => target.Entity(
                     "Bobcat",
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 operations => Assert.Collection(
                     operations,
@@ -1774,14 +1864,14 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 target => target.Entity(
                     "Coyote",
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                         x.Index("Value");
                     }),
@@ -1800,7 +1890,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("Value");
                         x.Index("Value");
                     }),
@@ -1809,7 +1899,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 operations => Assert.Collection(
                     operations,
@@ -1826,16 +1916,16 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 target => target.Entity(
                     "Algae",
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId");
-                        x.Reference("Algae").InverseCollection().ForeignKey("ParentId");
+                        x.HasOne("Algae").WithMany().ForeignKey("ParentId");
                     }),
                 operations => Assert.Collection(
                     operations,
@@ -1852,16 +1942,16 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId");
-                        x.Reference("Bacteria").InverseCollection().ForeignKey("ParentId");
+                        x.HasOne("Bacteria").WithMany().ForeignKey("ParentId");
                     }),
                 target => target.Entity(
                     "Bacteria",
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 operations => Assert.Collection(
                     operations,
@@ -1878,7 +1968,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("MakerId");
                     }),
                 target =>
@@ -1888,16 +1978,16 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     target.Entity(
                         "Car",
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("MakerId");
-                            x.Reference("Maker").InverseCollection().ForeignKey("MakerId");
+                            x.HasOne("Maker").WithMany().ForeignKey("MakerId");
                         });
                 },
                 operations => Assert.Collection(
@@ -1917,16 +2007,16 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     source.Entity(
                         "Boat",
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("MakerId");
-                            x.Reference("Maker").InverseCollection().ForeignKey("MakerId");
+                            x.HasOne("Maker").WithMany().ForeignKey("MakerId");
                         });
                 },
                 target => target.Entity(
@@ -1934,7 +2024,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("MakerId");
                     }),
                 operations => Assert.Collection(
@@ -1954,14 +2044,14 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     source.Entity(
                         "Airplane",
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("MakerId");
                         });
                 },
@@ -1972,7 +2062,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("AlternateId");
                         });
                     target.Entity(
@@ -1980,9 +2070,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("MakerId");
-                            x.Reference("Maker").InverseCollection().ForeignKey("MakerId").PrincipalKey("AlternateId");
+                            x.HasOne("Maker").WithMany().ForeignKey("MakerId").PrincipalKey("AlternateId");
                         });
                 },
                 operations => Assert.Collection(
@@ -2003,7 +2093,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("AlternateId");
                         });
                     source.Entity(
@@ -2011,9 +2101,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("MakerId");
-                            x.Reference("Maker").InverseCollection().ForeignKey("MakerId").PrincipalKey("AlternateId");
+                            x.HasOne("Maker").WithMany().ForeignKey("MakerId").PrincipalKey("AlternateId");
                         });
                 },
                 target =>
@@ -2023,14 +2113,14 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     target.Entity(
                         "Submarine",
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("MakerId");
                         });
                 },
@@ -2053,16 +2143,16 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     modelBuilder.Entity(
                         "Helicopter",
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("MakerId");
-                            x.Reference("Maker").InverseCollection().ForeignKey("MakerId");
+                            x.HasOne("Maker").WithMany().ForeignKey("MakerId");
                         });
                 },
                 operations =>
@@ -2088,16 +2178,16 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     modelBuilder.Entity(
                         "Glider",
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("MakerId");
-                            x.Reference("Maker").InverseCollection().ForeignKey("MakerId");
+                            x.HasOne("Maker").WithMany().ForeignKey("MakerId");
                         });
                 },
                 _ => { },
@@ -2122,14 +2212,14 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 target => target.Entity(
                     "Hornet",
                     x =>
                     {
                         x.Property<int>("Id").HasColumnName("HornetId");
-                        x.Key("Id");
+                        x.HasKey("Id");
                     }),
                 operations =>
                 {
@@ -2148,18 +2238,18 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name");
-                        x.AlternateKey("Name");
+                        x.HasAlternateKey("Name");
                     }),
                 target => target.Entity(
                     "Wasp",
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name").HasColumnName("WaspName");
-                        x.AlternateKey("Name");
+                        x.HasAlternateKey("Name");
                     }),
                 operations =>
                 {
@@ -2178,7 +2268,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name");
                         x.Index("Name");
                     }),
@@ -2187,7 +2277,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name").HasColumnName("BeeName");
                         x.Index("Name");
                     }),
@@ -2208,9 +2298,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name");
-                        x.AlternateKey("Name");
+                        x.HasAlternateKey("Name");
                     }),
                 target => target.Entity(
                     "Fly",
@@ -2218,9 +2308,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Flies");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name");
-                        x.AlternateKey("Name");
+                        x.HasAlternateKey("Name");
                     }),
                 operations =>
                 {
@@ -2239,7 +2329,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name");
                         x.Index("Name");
                     }),
@@ -2249,7 +2339,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     {
                         x.ToTable("Gnats");
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name");
                         x.Index("Name");
                     }),
@@ -2270,18 +2360,18 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name");
-                        x.AlternateKey("Name");
+                        x.HasAlternateKey("Name");
                     }),
                 target => target.Entity(
                     "grasshopper",
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id").Name("PK_Grasshopper");
+                        x.HasKey("Id").Name("PK_Grasshopper");
                         x.Property<string>("Name");
-                        x.AlternateKey("Name").Name("AK_Grasshopper_Name");
+                        x.HasAlternateKey("Name").Name("AK_Grasshopper_Name");
                     }),
                 operations =>
                 {
@@ -2300,7 +2390,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<string>("Name");
                         x.Index("Name");
                     }),
@@ -2309,7 +2399,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id").Name("PK_Cricket");
+                        x.HasKey("Id").Name("PK_Cricket");
                         x.Property<string>("Name");
                         x.Index("Name").Name("IX_Cricket_Name");
                     }),
@@ -2330,18 +2420,18 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId");
-                        x.Reference("Yeast").InverseCollection().ForeignKey("ParentId");
+                        x.HasOne("Yeast").WithMany().ForeignKey("ParentId");
                     }),
                 target => target.Entity(
                     "Yeast",
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId").HasColumnName("ParentYeastId");
-                        x.Reference("Yeast").InverseCollection().ForeignKey("ParentId");
+                        x.HasOne("Yeast").WithMany().ForeignKey("ParentId");
                     }),
                 operations =>
                 {
@@ -2359,18 +2449,18 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId");
-                        x.Reference("Mucor").InverseCollection().ForeignKey("ParentId");
+                        x.HasOne("Mucor").WithMany().ForeignKey("ParentId");
                     }),
                 target => target.Entity(
                     "Mucor",
                     x =>
                     {
                         x.Property<int>("Id").HasColumnName("MucorId");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<int>("ParentId");
-                        x.Reference("Mucor").InverseCollection().ForeignKey("ParentId");
+                        x.HasOne("Mucor").WithMany().ForeignKey("ParentId");
                     }),
                 operations =>
                 {
@@ -2390,16 +2480,16 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     source.Entity(
                         "Zonkey",
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("ParentId");
-                            x.Reference("Zebra").InverseCollection().ForeignKey("ParentId");
+                            x.HasOne("Zebra").WithMany().ForeignKey("ParentId");
                         });
                 },
                 target =>
@@ -2409,7 +2499,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     target.Entity(
                         "Zonkey",
@@ -2417,9 +2507,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Zonkeys");
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("ParentId");
-                            x.Reference("Zebra").InverseCollection().ForeignKey("ParentId");
+                            x.HasOne("Zebra").WithMany().ForeignKey("ParentId");
                         });
                 },
                 operations =>
@@ -2440,16 +2530,16 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     source.Entity(
                         "Jaglion",
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("ParentId");
-                            x.Reference("Jaguar").InverseCollection().ForeignKey("ParentId");
+                            x.HasOne("Jaguar").WithMany().ForeignKey("ParentId");
                         });
                 },
                 target =>
@@ -2460,16 +2550,16 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Jaguars");
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     target.Entity(
                         "Jaglion",
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("ParentId");
-                            x.Reference("Jaguar").InverseCollection().ForeignKey("ParentId");
+                            x.HasOne("Jaguar").WithMany().ForeignKey("ParentId");
                         });
                 },
                 operations =>
@@ -2492,8 +2582,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2533,8 +2623,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2574,8 +2664,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Animal", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2598,8 +2688,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Animal", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2637,8 +2727,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2660,8 +2750,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2700,8 +2790,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Animal", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2725,8 +2815,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Animal", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2764,8 +2854,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Animal", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2789,8 +2879,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Animal", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2830,8 +2920,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Animal", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2855,8 +2945,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Animal", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2897,8 +2987,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Animal", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2923,8 +3013,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Animal", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2965,8 +3055,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Animal", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -2991,8 +3081,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.ToTable("Animal", "dbo");
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -3030,16 +3120,16 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     modelBuilder.Entity(
                         "Animal",
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("HandlerId");
-                            x.Reference("Person").InverseCollection().ForeignKey("HandlerId");
+                            x.HasOne("Person").WithMany().ForeignKey("HandlerId");
                         });
                     modelBuilder.Entity("Wyvern").BaseType("Animal");
                 },
@@ -3072,7 +3162,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     EntityType animal = null;
                     modelBuilder.Entity(
@@ -3080,8 +3170,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -3093,7 +3183,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.Metadata.BaseType = animal;
                             x.Property<int>("HandlerId");
-                            x.Reference("Person").InverseCollection().ForeignKey("HandlerId");
+                            x.HasOne("Person").WithMany().ForeignKey("HandlerId");
                             x.Metadata.Relational().DiscriminatorValue = "Stag";
                         });
                 },
@@ -3128,8 +3218,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -3147,9 +3237,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("PetId");
-                            x.Reference("DomesticAnimal").InverseCollection().ForeignKey("PetId");
+                            x.HasOne("DomesticAnimal").WithMany().ForeignKey("PetId");
                         });
                 },
                 operations =>
@@ -3183,8 +3273,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -3196,7 +3286,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.Metadata.BaseType = animal;
                             x.Property<int>("PreyId");
-                            x.Reference("Animal").InverseCollection().ForeignKey("PreyId");
+                            x.HasOne("Animal").WithMany().ForeignKey("PreyId");
                             x.Metadata.Relational().DiscriminatorValue = "Predator";
                         });
                 },
@@ -3226,14 +3316,14 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     modelBuilder.Entity(
                         "Animal",
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("HandlerId");
                         });
                     modelBuilder.Entity("Drakee").BaseType("Animal");
@@ -3245,16 +3335,16 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     modelBuilder.Entity(
                         "Animal",
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("HandlerId");
-                            x.Reference("Person").InverseCollection().ForeignKey("HandlerId");
+                            x.HasOne("Person").WithMany().ForeignKey("HandlerId");
                         });
                     modelBuilder.Entity("Drakee").BaseType("Animal");
                 },
@@ -3282,7 +3372,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     EntityType animal = null;
                     source.Entity(
@@ -3290,8 +3380,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -3313,7 +3403,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     EntityType animal = null;
                     target.Entity(
@@ -3321,8 +3411,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -3334,7 +3424,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.Metadata.BaseType = animal;
                             x.Property<int>("HunterId");
-                            x.Reference("Person").InverseCollection().ForeignKey("HunterId");
+                            x.HasOne("Person").WithMany().ForeignKey("HunterId");
                             x.Metadata.Relational().DiscriminatorValue = "GameAnimal";
                         });
                 },
@@ -3363,8 +3453,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -3382,7 +3472,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("TrophyId");
                         });
                 },
@@ -3394,8 +3484,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -3413,9 +3503,9 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                             x.Property<int>("TrophyId");
-                            x.Reference("TrophyAnimal").InverseCollection().ForeignKey("TrophyId");
+                            x.HasOne("TrophyAnimal").WithMany().ForeignKey("TrophyId");
                         });
                 },
                 operations =>
@@ -3442,7 +3532,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     EntityType animal = null;
                     source.Entity(
@@ -3450,8 +3540,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -3463,7 +3553,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         {
                             x.Metadata.BaseType = animal;
                             x.Property<int>("RiderId");
-                            x.Reference("Person").InverseCollection().ForeignKey("RiderId");
+                            x.HasOne("Person").WithMany().ForeignKey("RiderId");
                             x.Metadata.Relational().DiscriminatorValue = "MountAnimal";
                         });
                 },
@@ -3474,7 +3564,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
+                            x.HasKey("Id");
                         });
                     EntityType animal = null;
                     target.Entity(
@@ -3482,8 +3572,8 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                         x =>
                         {
                             x.Property<int>("Id");
-                            x.Key("Id");
-                            var discriminatorProperty = x.Property<string>("Discriminator").Required().Metadata;
+                            x.HasKey("Id");
+                            var discriminatorProperty = x.Property<string>("Discriminator").IsRequired().Metadata;
 
                             animal = x.Metadata;
                             animal.Relational().DiscriminatorProperty = discriminatorProperty;
@@ -3517,7 +3607,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<bool>("Value").HasDefaultValue(true);
                     }),
                  target => target.Entity(
@@ -3525,7 +3615,7 @@ namespace Microsoft.Data.Entity.Migrations.Internal
                     x =>
                     {
                         x.Property<int>("Id");
-                        x.Key("Id");
+                        x.HasKey("Id");
                         x.Property<bool>("Value").HasDefaultValue(true);
                     }),
                  Assert.Empty);

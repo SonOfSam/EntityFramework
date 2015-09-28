@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
+using System.Reflection;
 using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Metadata.Conventions;
 using Microsoft.Data.Entity.Metadata.Conventions.Internal;
@@ -95,6 +96,49 @@ namespace Microsoft.Data.Entity.Tests.Metadata.Conventions
         }
 
         [Fact]
+        public void OnEntityTypeMemberIgnored_calls_apply_on_conventions_in_order()
+        {
+            var conventions = new ConventionSet();
+
+            InternalEntityTypeBuilder entityTypeBuilder = null;
+            var convention = new Mock<IEntityTypeMemberIgnoredConvention>();
+            convention.Setup(c => c.Apply(It.IsAny<InternalEntityTypeBuilder>(), It.IsAny<string>()))
+                .Returns<InternalEntityTypeBuilder, string>((b, t) =>
+                {
+                    Assert.NotNull(b);
+                    Assert.Equal("A", t);
+                    entityTypeBuilder = b;
+                    return true;
+                });
+            conventions.EntityTypeMemberIgnoredConventions.Add(convention.Object);
+
+            var nullConvention = new Mock<IEntityTypeMemberIgnoredConvention>();
+            nullConvention.Setup(c => c.Apply(It.IsAny<InternalEntityTypeBuilder>(), It.IsAny<string>()))
+                .Returns<InternalEntityTypeBuilder, string>((b, t) =>
+                {
+                    Assert.Equal("A", t);
+                    Assert.Same(entityTypeBuilder, b);
+                    return false;
+                });
+            conventions.EntityTypeMemberIgnoredConventions.Add(nullConvention.Object);
+
+            var extraConvention = new Mock<IEntityTypeMemberIgnoredConvention>();
+            extraConvention.Setup(c => c.Apply(It.IsAny<InternalEntityTypeBuilder>(), It.IsAny<string>()))
+                .Returns<InternalEntityTypeBuilder, string>((b, t) =>
+                {
+                    Assert.False(true);
+                    return false;
+                });
+            conventions.EntityTypeMemberIgnoredConventions.Add(extraConvention.Object);
+
+            var builder = new InternalModelBuilder(new Model(), conventions).Entity(typeof(SpecialOrder), ConfigurationSource.Convention);
+
+            Assert.NotNull(builder.Ignore("A", ConfigurationSource.Convention));
+
+            Assert.NotNull(entityTypeBuilder);
+        }
+
+        [Fact]
         public void OnPropertyAdded_calls_apply_on_conventions_in_order()
         {
             var conventions = new ConventionSet();
@@ -104,7 +148,9 @@ namespace Microsoft.Data.Entity.Tests.Metadata.Conventions
             convention.Setup(c => c.Apply(It.IsAny<InternalPropertyBuilder>())).Returns<InternalPropertyBuilder>(b =>
                 {
                     Assert.NotNull(b);
-                    propertyBuilder = new InternalPropertyBuilder(b.Metadata, b.ModelBuilder);
+                    Assert.Equal("OrderId", b.Metadata.Name);
+                    Assert.Equal(typeof(int), b.Metadata.ClrType);
+                    propertyBuilder = new InternalPropertyBuilder(b.Metadata, b.ModelBuilder, true);
                     return propertyBuilder;
                 });
             conventions.PropertyAddedConventions.Add(convention.Object);
@@ -129,6 +175,49 @@ namespace Microsoft.Data.Entity.Tests.Metadata.Conventions
 
             var entityBuilder = builder.Entity(typeof(Order), ConfigurationSource.Convention);
             var explicitKeyBuilder = entityBuilder.Property("OrderId", typeof(int), ConfigurationSource.Convention);
+
+            Assert.Null(explicitKeyBuilder);
+            Assert.NotNull(propertyBuilder);
+        }
+
+        [Fact]
+        public void OnPropertyAdded_calls_apply_on_conventions_in_order_for_non_shadow_property()
+        {
+            var conventions = new ConventionSet();
+
+            InternalPropertyBuilder propertyBuilder = null;
+            var convention = new Mock<IPropertyConvention>();
+            convention.Setup(c => c.Apply(It.IsAny<InternalPropertyBuilder>())).Returns<InternalPropertyBuilder>(b =>
+                {
+                    Assert.NotNull(b);
+                    Assert.Equal("OrderId", b.Metadata.Name);
+                    Assert.Equal(typeof(int), b.Metadata.ClrType);
+                    Assert.False(b.Metadata.IsShadowProperty);
+                    propertyBuilder = new InternalPropertyBuilder(b.Metadata, b.ModelBuilder, true);
+                    return propertyBuilder;
+                });
+            conventions.PropertyAddedConventions.Add(convention.Object);
+
+            var nullConvention = new Mock<IPropertyConvention>();
+            nullConvention.Setup(c => c.Apply(It.IsAny<InternalPropertyBuilder>())).Returns<InternalPropertyBuilder>(b =>
+                {
+                    Assert.Same(propertyBuilder, b);
+                    return null;
+                });
+            conventions.PropertyAddedConventions.Add(nullConvention.Object);
+
+            var extraConvention = new Mock<IPropertyConvention>();
+            extraConvention.Setup(c => c.Apply(It.IsAny<InternalPropertyBuilder>())).Returns<InternalPropertyBuilder>(b =>
+                {
+                    Assert.False(true);
+                    return null;
+                });
+            conventions.PropertyAddedConventions.Add(extraConvention.Object);
+
+            var builder = new InternalModelBuilder(new Model(), conventions);
+
+            var entityBuilder = builder.Entity(typeof(Order), ConfigurationSource.Convention);
+            var explicitKeyBuilder = entityBuilder.Property(Order.OrderIdProperty, ConfigurationSource.Convention);
 
             Assert.Null(explicitKeyBuilder);
             Assert.NotNull(propertyBuilder);
@@ -208,10 +297,55 @@ namespace Microsoft.Data.Entity.Tests.Metadata.Conventions
             var builder = new InternalModelBuilder(new Model(), conventions);
 
             var entityBuilder = builder.Entity(typeof(Order), ConfigurationSource.Convention);
-            var explicitKeyBuilder = entityBuilder.Key(new List<string> { "OrderId" }, ConfigurationSource.Convention);
+            var explicitKeyBuilder = entityBuilder.HasKey(new List<string> { "OrderId" }, ConfigurationSource.Convention);
 
             Assert.Null(explicitKeyBuilder);
             Assert.NotNull(keyBuilder);
+        }
+
+        [Fact]
+        public void OnPrimaryKeySet_calls_apply_on_conventions_in_order()
+        {
+            var conventions = new ConventionSet();
+
+            InternalKeyBuilder internalKeyBuilder = null;
+            var convention = new Mock<IPrimaryKeyConvention>();
+            convention.Setup(c => c.Apply(It.IsAny<InternalKeyBuilder>(), It.IsAny<Key>()))
+                .Returns<InternalKeyBuilder, Key>((b, t) =>
+                    {
+                        Assert.NotNull(b);
+                        Assert.Null(t);
+                        internalKeyBuilder = b;
+                        return true;
+                    });
+            conventions.PrimaryKeySetConventions.Add(convention.Object);
+
+            var nullConvention = new Mock<IPrimaryKeyConvention>();
+            nullConvention.Setup(c => c.Apply(It.IsAny<InternalKeyBuilder>(), It.IsAny<Key>()))
+                .Returns<InternalKeyBuilder, Key>((b, t) =>
+                    {
+                        Assert.Null(t);
+                        Assert.Same(internalKeyBuilder, b);
+                        return false;
+                    });
+            conventions.PrimaryKeySetConventions.Add(nullConvention.Object);
+
+            var extraConvention = new Mock<IPrimaryKeyConvention>();
+            extraConvention.Setup(c => c.Apply(It.IsAny<InternalKeyBuilder>(), It.IsAny<Key>()))
+                .Returns<InternalKeyBuilder, Key>((b, t) =>
+                    {
+                        Assert.False(true);
+                        return false;
+                    });
+            conventions.PrimaryKeySetConventions.Add(extraConvention.Object);
+
+            var entityBuilder = new InternalModelBuilder(new Model(), conventions)
+                .Entity(typeof(Order), ConfigurationSource.Convention);
+
+            entityBuilder.HasKey(new[] { "OrderId" }, ConfigurationSource.Convention);
+            Assert.NotNull(entityBuilder.PrimaryKey(new[] { "OrderId" }, ConfigurationSource.Convention));
+
+            Assert.NotNull(internalKeyBuilder);
         }
 
         [Fact]
@@ -230,7 +364,7 @@ namespace Microsoft.Data.Entity.Tests.Metadata.Conventions
             var entityBuilder = builder.Entity(typeof(Order), ConfigurationSource.Convention);
             var foreignKey = new ForeignKey(
                 new[] { entityBuilder.Property("FK", typeof(int), ConfigurationSource.Convention).Metadata },
-                entityBuilder.Key(new[] { entityBuilder.Property("OrderId", typeof(int), ConfigurationSource.Convention).Metadata }, ConfigurationSource.Convention).Metadata,
+                entityBuilder.HasKey(new[] { "OrderId" }, ConfigurationSource.Convention).Metadata,
                 entityBuilder.Metadata,
                 entityBuilder.Metadata);
             var conventionDispatcher = new ConventionDispatcher(conventions);
@@ -285,10 +419,10 @@ namespace Microsoft.Data.Entity.Tests.Metadata.Conventions
             var entityBuilder = builder.Entity(typeof(Order), ConfigurationSource.Convention);
             entityBuilder.PrimaryKey(new[] { "OrderId" }, ConfigurationSource.Convention);
 
-            entityBuilder.Relationship(typeof(Order), typeof(OrderDetails), "Order", "OrderDetails", ConfigurationSource.Convention, isUnique: true);
+            Assert.Null(entityBuilder.Relationship(typeof(Order), typeof(OrderDetails), "Order", "OrderDetails", ConfigurationSource.Convention, isUnique: true));
 
             Assert.True(orderIgnored);
-            Assert.True(orderDetailsIgnored);
+            Assert.False(orderDetailsIgnored);
             Assert.NotNull(relationshipBuilder);
         }
 
@@ -374,6 +508,8 @@ namespace Microsoft.Data.Entity.Tests.Metadata.Conventions
 
         private class Order
         {
+            public static readonly PropertyInfo OrderIdProperty = typeof(Order).GetProperty("OrderId");
+
             public int OrderId { get; set; }
 
             public virtual OrderDetails OrderDetails { get; set; }

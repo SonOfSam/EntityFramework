@@ -18,14 +18,8 @@ namespace Microsoft.Data.Entity.Metadata.Conventions.Internal
             Check.NotNull(attribute, nameof(attribute));
             Check.NotNull(clrProperty, nameof(clrProperty));
 
-            if (clrProperty.PropertyType != typeof(byte[]))
-            {
-                throw new InvalidOperationException(Strings.TimestampAttributeOnNonBinary(propertyBuilder.Metadata.Name));
-            }
-
-            propertyBuilder.ClrType(typeof(byte[]), ConfigurationSource.DataAnnotation);
             propertyBuilder.ValueGenerated(ValueGenerated.OnAddOrUpdate, ConfigurationSource.DataAnnotation);
-            propertyBuilder.ConcurrencyToken(true, ConfigurationSource.DataAnnotation);
+            propertyBuilder.IsConcurrencyToken(true, ConfigurationSource.DataAnnotation);
 
             return propertyBuilder;
         }

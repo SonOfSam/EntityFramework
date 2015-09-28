@@ -35,8 +35,8 @@ namespace Microsoft.Data.Entity.Sqlite.FunctionalTests
         {
             await AssertQuery<Customer>(
                 cs => cs.Where(c => c.ContactName.Contains("M")), // case-insensitive
-                cs => cs.Where(c => c.ContactName.Contains("M") 
-                                     || c.ContactName.Contains("m")), // case-sensitive
+                cs => cs.Where(c => c.ContactName.Contains("M")
+                                    || c.ContactName.Contains("m")), // case-sensitive
                 entryCount: 34);
         }
 
@@ -56,7 +56,7 @@ namespace Microsoft.Data.Entity.Sqlite.FunctionalTests
         public async Task Single_Predicate_Cancellation()
         {
             await Assert.ThrowsAsync<TaskCanceledException>(async () =>
-                await Single_Predicate_Cancellation(TestSqlLoggerFactory.CancelQuery()));
+                await Single_Predicate_Cancellation(Fixture.CancelQuery()));
         }
 
         public AsyncQuerySqliteTest(NorthwindQuerySqliteFixture fixture)

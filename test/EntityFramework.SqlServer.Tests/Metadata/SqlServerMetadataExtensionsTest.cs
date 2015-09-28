@@ -5,7 +5,6 @@ using System;
 using System.Linq;
 using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Metadata.Conventions;
-using Microsoft.Data.Entity.SqlServer.Metadata;
 using Xunit;
 
 namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
@@ -225,7 +224,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
 
             var key = modelBuilder
                 .Entity<Customer>()
-                .Key(e => e.Id)
+                .HasKey(e => e.Id)
                 .Metadata;
 
             Assert.Equal("PK_Customer", key.Relational().Name);
@@ -258,12 +257,12 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
 
             modelBuilder
                 .Entity<Customer>()
-                .Key(e => e.Id);
+                .HasKey(e => e.Id);
 
             var foreignKey = modelBuilder
                 .Entity<Order>()
-                .Reference<Customer>()
-                .InverseReference()
+                .HasOne<Customer>()
+                .WithOne()
                 .ForeignKey<Order>(e => e.CustomerId)
                 .Metadata;
 
@@ -354,7 +353,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
 
             var key = modelBuilder
                 .Entity<Customer>()
-                .Key(e => e.Id)
+                .HasKey(e => e.Id)
                 .Metadata;
 
             Assert.Null(key.SqlServer().IsClustered);
@@ -516,18 +515,18 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var modelBuilder = new ModelBuilder(new ConventionSet());
             var model = modelBuilder.Model;
 
-            Assert.Null(model.SqlServer().IdentityStrategy);
-            Assert.Null(((IModel)model).SqlServer().IdentityStrategy);
+            Assert.Null(model.SqlServer().ValueGenerationStrategy);
+            Assert.Null(((IModel)model).SqlServer().ValueGenerationStrategy);
 
-            model.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.SequenceHiLo;
+            model.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.SequenceHiLo;
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, model.SqlServer().IdentityStrategy);
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, ((IModel)model).SqlServer().IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, model.SqlServer().ValueGenerationStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, ((IModel)model).SqlServer().ValueGenerationStrategy);
 
-            model.SqlServer().IdentityStrategy = null;
+            model.SqlServer().ValueGenerationStrategy = null;
 
-            Assert.Null(model.SqlServer().IdentityStrategy);
-            Assert.Null(((IModel)model).SqlServer().IdentityStrategy);
+            Assert.Null(model.SqlServer().ValueGenerationStrategy);
+            Assert.Null(((IModel)model).SqlServer().ValueGenerationStrategy);
         }
 
         [Fact]
@@ -548,26 +547,6 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
 
             Assert.Null(model.SqlServer().HiLoSequenceName);
             Assert.Null(((IModel)model).SqlServer().HiLoSequenceName);
-        }
-
-        [Fact]
-        public void Can_get_and_set_pool_size_on_model()
-        {
-            var modelBuilder = new ModelBuilder(new ConventionSet());
-            var model = modelBuilder.Model;
-
-            Assert.Null(model.SqlServer().HiLoSequencePoolSize);
-            Assert.Null(((IModel)model).SqlServer().HiLoSequencePoolSize);
-
-            model.SqlServer().HiLoSequencePoolSize = 88;
-
-            Assert.Equal(88, model.SqlServer().HiLoSequencePoolSize);
-            Assert.Equal(88, ((IModel)model).SqlServer().HiLoSequencePoolSize);
-
-            model.SqlServer().HiLoSequencePoolSize = null;
-
-            Assert.Null(model.SqlServer().HiLoSequencePoolSize);
-            Assert.Null(((IModel)model).SqlServer().HiLoSequencePoolSize);
         }
 
         [Fact]
@@ -601,21 +580,21 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
                 .ValueGeneratedOnAdd()
                 .Metadata;
 
-            Assert.Null(property.SqlServer().IdentityStrategy);
-            Assert.Null(((IProperty)property).SqlServer().IdentityStrategy);
+            Assert.Null(property.SqlServer().ValueGenerationStrategy);
+            Assert.Null(((IProperty)property).SqlServer().ValueGenerationStrategy);
             Assert.Null(property.RequiresValueGenerator);
             Assert.False(((IProperty)property).RequiresValueGenerator);
 
-            property.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.SequenceHiLo;
+            property.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.SequenceHiLo;
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, property.SqlServer().IdentityStrategy);
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, ((IProperty)property).SqlServer().IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, property.SqlServer().ValueGenerationStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, ((IProperty)property).SqlServer().ValueGenerationStrategy);
             Assert.Null(property.RequiresValueGenerator);
 
-            property.SqlServer().IdentityStrategy = null;
+            property.SqlServer().ValueGenerationStrategy = null;
 
-            Assert.Null(property.SqlServer().IdentityStrategy);
-            Assert.Null(((IProperty)property).SqlServer().IdentityStrategy);
+            Assert.Null(property.SqlServer().ValueGenerationStrategy);
+            Assert.Null(((IProperty)property).SqlServer().ValueGenerationStrategy);
             Assert.Null(property.RequiresValueGenerator);
         }
 
@@ -630,21 +609,21 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
                 .ValueGeneratedOnAdd()
                 .Metadata;
 
-            Assert.Null(property.SqlServer().IdentityStrategy);
-            Assert.Null(((IProperty)property).SqlServer().IdentityStrategy);
+            Assert.Null(property.SqlServer().ValueGenerationStrategy);
+            Assert.Null(((IProperty)property).SqlServer().ValueGenerationStrategy);
             Assert.Null(property.RequiresValueGenerator);
             Assert.False(((IProperty)property).RequiresValueGenerator);
 
-            property.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.SequenceHiLo;
+            property.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.SequenceHiLo;
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, property.SqlServer().IdentityStrategy);
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, ((IProperty)property).SqlServer().IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, property.SqlServer().ValueGenerationStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, ((IProperty)property).SqlServer().ValueGenerationStrategy);
             Assert.Null(property.RequiresValueGenerator);
 
-            property.SqlServer().IdentityStrategy = null;
+            property.SqlServer().ValueGenerationStrategy = null;
 
-            Assert.Null(property.SqlServer().IdentityStrategy);
-            Assert.Null(((IProperty)property).SqlServer().IdentityStrategy);
+            Assert.Null(property.SqlServer().ValueGenerationStrategy);
+            Assert.Null(((IProperty)property).SqlServer().ValueGenerationStrategy);
             Assert.Null(property.RequiresValueGenerator);
         }
 
@@ -661,7 +640,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             Assert.Equal(
                 Strings.SequenceBadType("Name", typeof(Customer).FullName, "String"),
                 Assert.Throws<ArgumentException>(
-                    () => property.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.SequenceHiLo).Message);
+                    () => property.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.SequenceHiLo).Message);
         }
 
         [Fact]
@@ -677,7 +656,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             Assert.Equal(
                 Strings.IdentityBadType("Name", typeof(Customer).FullName, "String"),
                 Assert.Throws<ArgumentException>(
-                    () => property.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.IdentityColumn).Message);
+                    () => property.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.IdentityColumn).Message);
         }
 
         [Fact]
@@ -693,7 +672,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             Assert.Equal(
                 Strings.IdentityBadType("Byte", typeof(Customer).FullName, "Byte"),
                 Assert.Throws<ArgumentException>(
-                    () => property.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.IdentityColumn).Message);
+                    () => property.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.IdentityColumn).Message);
         }
 
         [Fact]
@@ -709,7 +688,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             Assert.Equal(
                 Strings.IdentityBadType("NullableByte", typeof(Customer).FullName, "Nullable`1"),
                 Assert.Throws<ArgumentException>(
-                    () => property.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.IdentityColumn).Message);
+                    () => property.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.IdentityColumn).Message);
         }
 
         [Fact]
@@ -734,30 +713,6 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
 
             Assert.Null(property.SqlServer().HiLoSequenceName);
             Assert.Null(((IProperty)property).SqlServer().HiLoSequenceName);
-        }
-
-        [Fact]
-        public void Can_get_and_set_pool_size_on_property()
-        {
-            var modelBuilder = new ModelBuilder(new ConventionSet());
-
-            var property = modelBuilder
-                .Entity<Customer>()
-                .Property(e => e.Id)
-                .Metadata;
-
-            Assert.Null(property.SqlServer().HiLoSequencePoolSize);
-            Assert.Null(((IProperty)property).SqlServer().HiLoSequencePoolSize);
-
-            property.SqlServer().HiLoSequencePoolSize = 77;
-
-            Assert.Equal(77, property.SqlServer().HiLoSequencePoolSize);
-            Assert.Equal(77, ((IProperty)property).SqlServer().HiLoSequencePoolSize);
-
-            property.SqlServer().HiLoSequencePoolSize = null;
-
-            Assert.Null(property.SqlServer().HiLoSequencePoolSize);
-            Assert.Null(((IProperty)property).SqlServer().HiLoSequencePoolSize);
         }
 
         [Fact]
@@ -804,13 +759,13 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             Assert.Null(property.SqlServer().FindHiLoSequence());
             Assert.Null(((IProperty)property).SqlServer().FindHiLoSequence());
 
-            modelBuilder.Model.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.IdentityColumn;
+            modelBuilder.Model.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.IdentityColumn;
 
             Assert.Null(property.SqlServer().FindHiLoSequence());
             Assert.Null(((IProperty)property).SqlServer().FindHiLoSequence());
 
-            modelBuilder.Model.SqlServer().IdentityStrategy = null;
-            property.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.IdentityColumn;
+            modelBuilder.Model.SqlServer().ValueGenerationStrategy = null;
+            property.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.IdentityColumn;
 
             Assert.Null(property.SqlServer().FindHiLoSequence());
             Assert.Null(((IProperty)property).SqlServer().FindHiLoSequence());
@@ -829,7 +784,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
 
             modelBuilder.Model.SqlServer().GetOrAddSequence("DaneelOlivaw");
             property.SqlServer().HiLoSequenceName = "DaneelOlivaw";
-            property.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.SequenceHiLo;
+            property.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.SequenceHiLo;
 
             Assert.Equal("DaneelOlivaw", property.SqlServer().FindHiLoSequence().Name);
             Assert.Equal("DaneelOlivaw", ((IProperty)property).SqlServer().FindHiLoSequence().Name);
@@ -847,7 +802,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
                 .Metadata;
 
             modelBuilder.Model.SqlServer().GetOrAddSequence("DaneelOlivaw");
-            modelBuilder.Model.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.SequenceHiLo;
+            modelBuilder.Model.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.SequenceHiLo;
             property.SqlServer().HiLoSequenceName = "DaneelOlivaw";
 
             Assert.Equal("DaneelOlivaw", property.SqlServer().FindHiLoSequence().Name);
@@ -867,7 +822,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
 
             modelBuilder.Model.SqlServer().GetOrAddSequence("DaneelOlivaw");
             modelBuilder.Model.SqlServer().HiLoSequenceName = "DaneelOlivaw";
-            property.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.SequenceHiLo;
+            property.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.SequenceHiLo;
 
             Assert.Equal("DaneelOlivaw", property.SqlServer().FindHiLoSequence().Name);
             Assert.Equal("DaneelOlivaw", ((IProperty)property).SqlServer().FindHiLoSequence().Name);
@@ -885,7 +840,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
                 .Metadata;
 
             modelBuilder.Model.SqlServer().GetOrAddSequence("DaneelOlivaw");
-            modelBuilder.Model.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.SequenceHiLo;
+            modelBuilder.Model.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.SequenceHiLo;
             modelBuilder.Model.SqlServer().HiLoSequenceName = "DaneelOlivaw";
 
             Assert.Equal("DaneelOlivaw", property.SqlServer().FindHiLoSequence().Name);
@@ -906,7 +861,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             modelBuilder.Model.SqlServer().GetOrAddSequence("DaneelOlivaw", "R");
             property.SqlServer().HiLoSequenceName = "DaneelOlivaw";
             property.SqlServer().HiLoSequenceSchema = "R";
-            property.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.SequenceHiLo;
+            property.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.SequenceHiLo;
 
             Assert.Equal("DaneelOlivaw", property.SqlServer().FindHiLoSequence().Name);
             Assert.Equal("DaneelOlivaw", ((IProperty)property).SqlServer().FindHiLoSequence().Name);
@@ -926,7 +881,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
                 .Metadata;
 
             modelBuilder.Model.SqlServer().GetOrAddSequence("DaneelOlivaw", "R");
-            modelBuilder.Model.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.SequenceHiLo;
+            modelBuilder.Model.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.SequenceHiLo;
             property.SqlServer().HiLoSequenceName = "DaneelOlivaw";
             property.SqlServer().HiLoSequenceSchema = "R";
 
@@ -950,7 +905,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             modelBuilder.Model.SqlServer().GetOrAddSequence("DaneelOlivaw", "R");
             modelBuilder.Model.SqlServer().HiLoSequenceName = "DaneelOlivaw";
             modelBuilder.Model.SqlServer().HiLoSequenceSchema = "R";
-            property.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.SequenceHiLo;
+            property.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.SequenceHiLo;
 
             Assert.Equal("DaneelOlivaw", property.SqlServer().FindHiLoSequence().Name);
             Assert.Equal("DaneelOlivaw", ((IProperty)property).SqlServer().FindHiLoSequence().Name);
@@ -970,7 +925,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
                 .Metadata;
 
             modelBuilder.Model.SqlServer().GetOrAddSequence("DaneelOlivaw", "R");
-            modelBuilder.Model.SqlServer().IdentityStrategy = SqlServerIdentityStrategy.SequenceHiLo;
+            modelBuilder.Model.SqlServer().ValueGenerationStrategy = SqlServerValueGenerationStrategy.SequenceHiLo;
             modelBuilder.Model.SqlServer().HiLoSequenceName = "DaneelOlivaw";
             modelBuilder.Model.SqlServer().HiLoSequenceSchema = "R";
 

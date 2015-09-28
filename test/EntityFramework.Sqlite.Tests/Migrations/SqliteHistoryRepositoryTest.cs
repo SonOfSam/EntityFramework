@@ -4,11 +4,12 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Data.Entity.Infrastructure;
+using Microsoft.Data.Entity.Infrastructure.Internal;
+using Microsoft.Data.Entity.Metadata.Internal;
 using Microsoft.Data.Entity.Migrations.Internal;
-using Microsoft.Data.Entity.Sqlite;
-using Microsoft.Data.Entity.Sqlite.Metadata;
+using Microsoft.Data.Entity.Sqlite.Internal;
 using Microsoft.Data.Entity.Storage;
-using Microsoft.Data.Entity.Update;
+using Microsoft.Data.Entity.Storage.Internal;
 using Moq;
 using Xunit;
 
@@ -96,8 +97,9 @@ namespace Microsoft.Data.Entity.Migrations
 
         private static IHistoryRepository CreateHistoryRepository()
         {
-            var annotationsProvider = new SqliteMetadataExtensionProvider();
-            var updateSqlGenerator = new SqliteUpdateSqlGenerator();
+            var annotationsProvider = new SqliteAnnotationProvider();
+            var sqlGenerator = new SqliteSqlGenerator();
+            var typeMapper = new SqliteTypeMapper();
 
             return new SqliteHistoryRepository(
                 Mock.Of<IRelationalDatabaseCreator>(),
@@ -112,11 +114,12 @@ namespace Microsoft.Data.Entity.Migrations
                     annotationsProvider,
                     new SqliteMigrationsAnnotationProvider()),
                 new SqliteMigrationsSqlGenerator(
-                    updateSqlGenerator,
-                    new SqliteTypeMapper(),
+                    new RelationalCommandBuilderFactory(typeMapper),
+                    new SqliteSqlGenerator(),
+                    typeMapper,
                     annotationsProvider),
                 annotationsProvider,
-                updateSqlGenerator);
+                sqlGenerator);
         }
 
         private class Context : DbContext

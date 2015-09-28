@@ -6,14 +6,17 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using Microsoft.Data.Entity.FunctionalTests;
+using Microsoft.Data.Entity.FunctionalTests.TestUtilities.Xunit;
 using Microsoft.Data.Entity.Infrastructure;
+using Microsoft.Data.Entity.Internal;
 using Microsoft.Data.Entity.Metadata;
-using Microsoft.Data.Entity.Query;
 using Microsoft.Data.Entity.Query.Expressions;
-using Microsoft.Data.Entity.Query.Sql;
-using Microsoft.Data.Entity.SqlServer.Update;
+using Microsoft.Data.Entity.Query.Internal;
+using Microsoft.Data.Entity.Query.Sql.Internal;
 using Microsoft.Data.Entity.Storage;
+using Microsoft.Data.Entity.Storage.Internal;
 using Microsoft.Data.Entity.Update;
+using Microsoft.Data.Entity.Update.Internal;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
 using Xunit;
@@ -137,9 +140,10 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
         private CommandBuilder setupCommandBuilder()
             => new CommandBuilder(
                 new UntypedRelationalValueBufferFactoryFactory(),
-                new SqlServerTypeMapper(),
                 new SelectExpression(
                     new SqlServerQuerySqlGeneratorFactory(
+                        new RelationalCommandBuilderFactory(new SqlServerTypeMapper()),
+                        new RelationalSqlGenerator(),
                         new ParameterNameGeneratorFactory()))
                     .CreateGenerator);
 
@@ -150,7 +154,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
                 .AddEntityFramework()
                 .AddSqlServer()
                 .ServiceCollection()
-                .AddSingleton<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
+                .AddScoped<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
                 .BuildServiceProvider();
 
             using (var context = new ChipsContext(serviceProvider))
@@ -170,7 +174,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
                 .AddEntityFramework()
                 .AddSqlServer()
                 .ServiceCollection()
-                .AddSingleton<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
+                .AddScoped<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
                 .BuildServiceProvider();
 
             using (var context = new ConfiguredChipsContext(serviceProvider))
@@ -190,7 +194,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
                 .AddEntityFramework()
                 .AddSqlServer()
                 .ServiceCollection()
-                .AddSingleton<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
+                .AddScoped<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
                 .BuildServiceProvider();
 
             using (var context = new ChipsContext(serviceProvider))
@@ -211,7 +215,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
                 .AddEntityFramework()
                 .AddSqlServer()
                 .ServiceCollection()
-                .AddSingleton<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
+                .AddScoped<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
                 .BuildServiceProvider();
 
             using (var context = new ConfiguredChipsContext(serviceProvider))
@@ -232,7 +236,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
                 .AddEntityFramework()
                 .AddSqlServer()
                 .ServiceCollection()
-                .AddSingleton<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
+                .AddScoped<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
                 .BuildServiceProvider();
 
             using (var context = new ChipsContext(serviceProvider))
@@ -258,7 +262,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
                 .AddEntityFramework()
                 .AddSqlServer()
                 .ServiceCollection()
-                .AddSingleton<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
+                .AddScoped<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
                 .BuildServiceProvider();
 
             using (var context = new ConfiguredChipsContext(serviceProvider))
@@ -284,7 +288,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
                 .AddEntityFramework()
                 .AddSqlServer()
                 .ServiceCollection()
-                .AddSingleton<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
+                .AddScoped<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
                 .BuildServiceProvider();
 
             using (var context = new ConfiguredChipsContext(serviceProvider))
@@ -299,7 +303,8 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
             }
         }
 
-        [Theory]
+        [ConditionalTheory]
+        [SqlServerCondition(SqlServerCondition.SupportsSequences)]
         [InlineData(51, 6)]
         [InlineData(50, 5)]
         [InlineData(20, 2)]
@@ -312,7 +317,7 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
                 .AddSqlServer()
                 .ServiceCollection()
                 .AddInstance<ILoggerFactory>(loggerFactory)
-                .AddSingleton<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
+                .AddScoped<IModificationCommandBatchFactory, TestSqlServerModificationCommandBatchFactory>()
                 .BuildServiceProvider();
 
             using (var context = new ConfiguredChipsContext(serviceProvider))
@@ -358,7 +363,10 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
             public TestSqlServerModificationCommandBatch(
                 ISqlServerUpdateSqlGenerator sqlGenerator,
                 int? maxBatchSize)
-                : base(sqlGenerator, maxBatchSize)
+                : base(
+                      new RelationalCommandBuilderFactory(new SqlServerTypeMapper()),
+                      sqlGenerator,
+                      maxBatchSize)
             {
             }
         }
@@ -367,13 +375,15 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
         {
             public TestSqlServerModificationCommandBatchFactory(
                 ISqlServerUpdateSqlGenerator sqlGenerator)
-                : base(sqlGenerator)
+                : base(
+                      new RelationalCommandBuilderFactory(new SqlServerTypeMapper()),
+                      sqlGenerator)
             {
             }
 
             public override ModificationCommandBatch Create(
                 IDbContextOptions options,
-                IRelationalMetadataExtensionProvider metadataExtensionProvider)
+                IRelationalAnnotationProvider annotationProvider)
             {
                 var optionsExtension = options.Extensions.OfType<SqlServerOptionsExtension>().FirstOrDefault();
 
@@ -401,7 +411,10 @@ namespace Microsoft.Data.Entity.SqlServer.FunctionalTests
 
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
-                modelBuilder.UseSqlServerSequenceHiLo();
+                if (TestEnvironment.GetFlag(nameof(SqlServerCondition.SupportsSequences)) ?? true)
+                {
+                    modelBuilder.UseSqlServerSequenceHiLo();
+                }
             }
         }
 

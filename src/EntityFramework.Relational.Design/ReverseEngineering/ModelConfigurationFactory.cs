@@ -4,7 +4,6 @@
 using Microsoft.Data.Entity.Metadata;
 using JetBrains.Annotations;
 using Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configuration;
-using Microsoft.Data.Entity.Relational.Design.Templating;
 using Microsoft.Data.Entity.Relational.Design.Utilities;
 using Microsoft.Data.Entity.Utilities;
 
@@ -13,7 +12,7 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering
     public abstract class ModelConfigurationFactory
     {
         public ModelConfigurationFactory(
-            [NotNull] IRelationalMetadataExtensionProvider extensionsProvider,
+            [NotNull] IRelationalAnnotationProvider extensionsProvider,
             [NotNull] CSharpUtilities cSharpUtilities,
             [NotNull] ModelUtilities modelUtilities)
         {
@@ -26,7 +25,7 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering
             ModelUtilities = modelUtilities;
         }
 
-        protected virtual IRelationalMetadataExtensionProvider ExtensionsProvider { get;[param: NotNull] private set; }
+        protected virtual IRelationalAnnotationProvider ExtensionsProvider { get;[param: NotNull] private set; }
         protected virtual CSharpUtilities CSharpUtilities { get;[param: NotNull] private set; }
         protected virtual ModelUtilities ModelUtilities { get;[param: NotNull] private set; }
 

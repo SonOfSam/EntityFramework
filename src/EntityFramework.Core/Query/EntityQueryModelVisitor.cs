@@ -36,7 +36,7 @@ namespace Microsoft.Data.Entity.Query
         public static readonly MethodInfo PropertyMethodInfo
             = typeof(EF).GetTypeInfo().GetDeclaredMethod(nameof(EF.Property));
 
-        private readonly IModel _model;
+        protected virtual IModel Model { get; }
         private readonly IQueryOptimizer _queryOptimizer;
         private readonly INavigationRewritingExpressionVisitorFactory _navigationRewritingExpressionVisitorFactory;
         private readonly ISubQueryMemberPushDownExpressionVisitor _subQueryMemberPushDownExpressionVisitor;
@@ -59,7 +59,7 @@ namespace Microsoft.Data.Entity.Query
         // TODO: Can these be non-blocking?
         private bool _blockTaskExpressions = true;
 
-        public EntityQueryModelVisitor(
+        protected EntityQueryModelVisitor(
             [NotNull] IModel model,
             [NotNull] IQueryOptimizer queryOptimizer,
             [NotNull] INavigationRewritingExpressionVisitorFactory navigationRewritingExpressionVisitorFactory,
@@ -94,7 +94,7 @@ namespace Microsoft.Data.Entity.Query
             Check.NotNull(expressionPrinter, nameof(expressionPrinter));
             Check.NotNull(queryCompilationContext, nameof(queryCompilationContext));
 
-            _model = model;
+            Model = model;
             _queryOptimizer = queryOptimizer;
             _navigationRewritingExpressionVisitorFactory = navigationRewritingExpressionVisitorFactory;
             _subQueryMemberPushDownExpressionVisitor = subQueryMemberPushDownExpressionVisitor;
@@ -136,7 +136,7 @@ namespace Microsoft.Data.Entity.Query
 
             using (QueryCompilationContext.Logger.BeginScopeImpl(this))
             {
-                QueryCompilationContext.Logger.LogInformation(queryModel, Strings.LogCompilingQueryModel);
+                QueryCompilationContext.Logger.LogDebug(queryModel, Strings.LogCompilingQueryModel);
 
                 _blockTaskExpressions = false;
 
@@ -166,7 +166,7 @@ namespace Microsoft.Data.Entity.Query
 
             using (QueryCompilationContext.Logger.BeginScopeImpl(this))
             {
-                QueryCompilationContext.Logger.LogInformation(queryModel, Strings.LogCompilingQueryModel);
+                QueryCompilationContext.Logger.LogDebug(queryModel, Strings.LogCompilingQueryModel);
 
                 _blockTaskExpressions = false;
 
@@ -197,7 +197,8 @@ namespace Microsoft.Data.Entity.Query
                     LinqOperatorProvider.InterceptExceptions
                         .MakeGenericMethod(_expression.Type.GetSequenceType()),
                     Expression.Lambda(_expression),
-                    QueryContextParameter);
+                    Expression.Constant(QueryCompilationContext.ContextType),
+                    Expression.Constant(QueryCompilationContext.Logger));
         }
 
         protected virtual void ExtractQueryAnnotations([NotNull] QueryModel queryModel)
@@ -219,7 +220,7 @@ namespace Microsoft.Data.Entity.Query
 
             queryModel.TransformExpressions(_subQueryMemberPushDownExpressionVisitor.Visit);
 
-            QueryCompilationContext.Logger.LogInformation(queryModel, Strings.LogOptimizedQueryModel);
+            QueryCompilationContext.Logger.LogDebug(queryModel, Strings.LogOptimizedQueryModel);
         }
 
         protected virtual void SingleResultToSequence([NotNull] QueryModel queryModel)
@@ -332,7 +333,7 @@ namespace Microsoft.Data.Entity.Query
                                 Expression.Parameter(queryModel.SelectClause.Selector.Type));
 
                     QueryCompilationContext.Logger
-                        .LogInformation(
+                        .LogDebug(
                             includeSpecification.NavigationPath.Join("."),
                             Strings.LogIncludingNavigation);
 
@@ -360,7 +361,7 @@ namespace Microsoft.Data.Entity.Query
                 foreach (
                     var navigation in
                         from propertyInfo in chainedNavigationProperties
-                        let entityType = _model.FindEntityType(propertyInfo.DeclaringType)
+                        let entityType = Model.FindEntityType(propertyInfo.DeclaringType)
                         select entityType?.FindNavigation(propertyInfo.Name))
                 {
                     if (navigation == null)
@@ -403,7 +404,7 @@ namespace Microsoft.Data.Entity.Query
             if (entityTrackingInfos.Any())
             {
                 QueryCompilationContext.Logger
-                    .LogInformation(
+                    .LogDebug(
                         entityTrackingInfos,
                         etis => Strings.LogTrackingQuerySources(
                             etis.Select(eti => eti.QuerySource.ItemName).Join()));
@@ -481,7 +482,7 @@ namespace Microsoft.Data.Entity.Query
                     .Lambda<Func<QueryContext, QueryResultScope, TResults>>(
                         _expression, QueryContextParameter, QueryResultScopeParameter);
 
-            QueryCompilationContext.Logger.LogInformation(() =>
+            QueryCompilationContext.Logger.LogDebug(() =>
                 {
                     var queryPlan = _expressionPrinter.Print(queryExecutorExpression);
 
@@ -1087,7 +1088,7 @@ namespace Microsoft.Data.Entity.Query
 
             while (memberExpression?.Expression != null)
             {
-                var entityType = _model.FindEntityType(memberExpression.Expression.Type);
+                var entityType = Model.FindEntityType(memberExpression.Expression.Type);
 
                 if (entityType == null)
                 {
@@ -1106,9 +1107,9 @@ namespace Microsoft.Data.Entity.Query
                 properties.Add(property);
 
                 querySourceReferenceExpression
-                    = memberExpression.Expression as QuerySourceReferenceExpression;
+                    = memberExpression.Expression.RemoveConvert() as QuerySourceReferenceExpression;
 
-                memberExpression = memberExpression.Expression as MemberExpression;
+                memberExpression = memberExpression.Expression.RemoveConvert() as MemberExpression;
             }
 
             return querySourceReferenceExpression != null
@@ -1171,7 +1172,7 @@ namespace Microsoft.Data.Entity.Query
                         || querySource == null
                         || querySource == querySourceReferenceExpression.ReferencedQuerySource)
                     {
-                        var entityType = _model.FindEntityType(methodCallExpression.Arguments[0].Type);
+                        var entityType = Model.FindEntityType(methodCallExpression.Arguments[0].Type);
 
                         if (entityType != null)
                         {

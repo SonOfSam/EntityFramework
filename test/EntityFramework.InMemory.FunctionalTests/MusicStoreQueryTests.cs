@@ -24,7 +24,7 @@ namespace Microsoft.Data.Entity.InMemory.FunctionalTests
                     .BuildServiceProvider();
 
             var optionsBuilder = new DbContextOptionsBuilder();
-            optionsBuilder.UseInMemoryDatabase(persist: true);
+            optionsBuilder.UseInMemoryDatabase();
 
             using (var db = new MusicStoreContext(serviceProvider, optionsBuilder.Options))
             {
@@ -81,11 +81,11 @@ namespace Microsoft.Data.Entity.InMemory.FunctionalTests
 
             protected override void OnModelCreating(ModelBuilder builder)
             {
-                builder.Entity<Album>().Key(a => a.AlbumId);
-                builder.Entity<Artist>().Key(a => a.ArtistId);
-                builder.Entity<Order>().Key(o => o.OrderId);
-                builder.Entity<Genre>().Key(g => g.GenreId);
-                builder.Entity<OrderDetail>().Key(o => o.OrderDetailId);
+                builder.Entity<Album>().HasKey(a => a.AlbumId);
+                builder.Entity<Artist>().HasKey(a => a.ArtistId);
+                builder.Entity<Order>().HasKey(o => o.OrderId);
+                builder.Entity<Genre>().HasKey(g => g.GenreId);
+                builder.Entity<OrderDetail>().HasKey(o => o.OrderDetailId);
 
                 base.OnModelCreating(builder);
             }

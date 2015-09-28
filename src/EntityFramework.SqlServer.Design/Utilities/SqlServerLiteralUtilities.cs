@@ -14,11 +14,11 @@ namespace Microsoft.Data.Entity.SqlServer.Design.Utilities
         public static readonly Regex _defaultValueIsExpression =
             new Regex(@"^[@\$\w]+\(.*\)$", RegexOptions.Compiled, TimeSpan.FromMilliseconds(1000.0));
 
-        public SqlServerLiteralUtilities([NotNull] ILogger logger)
+        public SqlServerLiteralUtilities([NotNull] ILoggerFactory loggerFactory)
         {
-            Check.NotNull(logger, nameof(logger));
+            Check.NotNull(loggerFactory, nameof(loggerFactory));
 
-            Logger = logger;
+            Logger = loggerFactory.CreateCommandsLogger();
         }
 
         public virtual ILogger Logger { get; }
@@ -65,7 +65,7 @@ namespace Microsoft.Data.Entity.SqlServer.Design.Utilities
         /// <param name="sqlServerStringLiteral"> the string to convert </param>
         /// <returns>
         ///     false if the string can be interpreted as 0, true if it can be
-        ///     intrepreted as 1, otherwise null
+        ///     interpreted as 1, otherwise null
         /// </returns>
         public virtual bool? ConvertSqlServerBitLiteral([NotNull] string sqlServerStringLiteral)
         {
@@ -118,9 +118,7 @@ namespace Microsoft.Data.Entity.SqlServer.Design.Utilities
                 };
             }
 
-            propertyType = propertyType.IsNullableType()
-                ? propertyType.UnwrapNullableType()
-                : propertyType;
+            propertyType = propertyType.UnwrapNullableType();
 
             if (typeof(string) == propertyType)
             {
@@ -164,7 +162,7 @@ namespace Microsoft.Data.Entity.SqlServer.Design.Utilities
 
     public class DefaultExpressionOrValue
     {
-        public virtual string DefaultExpression { get; [param: NotNull] set; }
-        public virtual object DefaultValue { get; [param: NotNull] set; }
+        public virtual string DefaultExpression { get;[param: NotNull] set; }
+        public virtual object DefaultValue { get;[param: NotNull] set; }
     }
 }

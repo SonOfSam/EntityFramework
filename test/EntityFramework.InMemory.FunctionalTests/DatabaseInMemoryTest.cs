@@ -27,7 +27,7 @@ namespace Microsoft.Data.Entity.InMemory.FunctionalTests
 
             var optionsBuilder = new DbContextOptionsBuilder()
                 .UseModel(model);
-            optionsBuilder.UseInMemoryDatabase(persist: true);
+            optionsBuilder.UseInMemoryDatabase();
 
             var customer = new Customer { Id = 42, Name = "Theon" };
 
@@ -141,7 +141,7 @@ namespace Microsoft.Data.Entity.InMemory.FunctionalTests
 
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
-                modelBuilder.Entity<Artist>().Key(a => a.ArtistId);
+                modelBuilder.Entity<Artist>().HasKey(a => a.ArtistId);
             }
 
             public class Artist : ArtistBase<string>

@@ -3,7 +3,6 @@
 
 using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Metadata.Conventions;
-using Microsoft.Data.Entity.Tests;
 using Xunit;
 
 namespace Microsoft.Data.Entity.Sqlite.Metadata
@@ -150,7 +149,7 @@ namespace Microsoft.Data.Entity.Sqlite.Metadata
 
             var key = modelBuilder
                 .Entity<Customer>()
-                .Key(e => e.Id)
+                .HasKey(e => e.Id)
                 .Metadata;
 
             Assert.Equal("PK_Customer", key.Sqlite().Name);
@@ -179,12 +178,12 @@ namespace Microsoft.Data.Entity.Sqlite.Metadata
 
             modelBuilder
                 .Entity<Customer>()
-                .Key(e => e.Id);
+                .HasKey(e => e.Id);
 
             var foreignKey = modelBuilder
                 .Entity<Order>()
-                .Reference<Customer>()
-                .InverseReference()
+                .HasOne<Customer>()
+                .WithOne()
                 .ForeignKey<Order>(e => e.CustomerId)
                 .Metadata;
 

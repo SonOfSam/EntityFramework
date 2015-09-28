@@ -169,7 +169,7 @@ FROM [Order] AS [o]
 INNER JOIN (
     SELECT DISTINCT [c].[FirstName], [c].[LastName]
     FROM [Customer] AS [c]
-) AS [c] ON ([o].[CustomerFirstName] = [c].[FirstName] AND [o].[CustomerLastName] = [c].[LastName])
+) AS [c] ON ([o].[CustomerFirstName] = [c].[FirstName]) AND ([o].[CustomerLastName] = [c].[LastName])
 ORDER BY [c].[FirstName], [c].[LastName]";
 
                 Assert.Equal(expectedSql, TestSqlLoggerFactory.Sql);
@@ -204,7 +204,7 @@ ORDER BY [c].[FirstName], [c].[LastName]";
                 var expectedSql =
                     @"SELECT [o].[Id], [o].[CustomerFirstName], [o].[CustomerLastName], [o].[Name], [c].[FirstName], [c].[LastName]
 FROM [Order] AS [o]
-LEFT JOIN [Customer] AS [c] ON ([o].[CustomerFirstName] = [c].[FirstName] AND [o].[CustomerLastName] = [c].[LastName])";
+LEFT JOIN [Customer] AS [c] ON ([o].[CustomerFirstName] = [c].[FirstName]) AND ([o].[CustomerLastName] = [c].[LastName])";
 
                 Assert.Equal(expectedSql, TestSqlLoggerFactory.Sql);
             }
@@ -264,8 +264,8 @@ LEFT JOIN [Customer] AS [c] ON ([o].[CustomerFirstName] = [c].[FirstName] AND [o
             {
                 modelBuilder.Entity<Customer>(m =>
                     {
-                        m.Key(c => new { c.FirstName, c.LastName });
-                        m.Collection(c => c.Orders).InverseReference(o => o.Customer);
+                        m.HasKey(c => new { c.FirstName, c.LastName });
+                        m.HasMany(c => c.Orders).WithOne(o => o.Customer);
                     });
             }
         }
@@ -401,9 +401,9 @@ Queen of the Andals and the Rhoynar and the First Men, Khaleesi of the Great Gra
             {
                 modelBuilder.Entity<Targaryen>(m =>
                     {
-                        m.Key(t => t.Id);
-                        m.Collection(t => t.Dragons).InverseReference(d => d.Mother).ForeignKey(d => d.MotherId);
-                        m.Reference(t => t.Details).InverseReference(d => d.Targaryen).ForeignKey<Details>(d => d.TargaryenId);
+                        m.HasKey(t => t.Id);
+                        m.HasMany(t => t.Dragons).WithOne(d => d.Mother).ForeignKey(d => d.MotherId);
+                        m.HasOne(t => t.Details).WithOne(d => d.Targaryen).ForeignKey<Details>(d => d.TargaryenId);
                     });
             }
         }
@@ -419,8 +419,8 @@ Queen of the Andals and the Rhoynar and the First Men, Khaleesi of the Great Gra
             var loggingFactory = new TestSqlLoggerFactory();
             var serviceProvider = new ServiceCollection()
                 .AddEntityFramework()
-                .AddSqlServer().
-                ServiceCollection()
+                .AddSqlServer()
+                .ServiceCollection()
                 .AddInstance<ILoggerFactory>(loggingFactory)
                 .BuildServiceProvider();
 
@@ -436,7 +436,7 @@ Queen of the Andals and the Rhoynar and the First Men, Khaleesi of the Great Gra
 
 SELECT [c].[FirstName], [c].[LastName]
 FROM [Customer] AS [c]
-WHERE ([c].[FirstName] = @__firstName_0 AND [c].[LastName] = @__8__locals1_details_LastName_1)";
+WHERE ([c].[FirstName] = @__firstName_0) AND ([c].[LastName] = @__8__locals1_details_LastName_1)";
 
                 Assert.Equal(expectedSql, TestSqlLoggerFactory.Sql);
             }

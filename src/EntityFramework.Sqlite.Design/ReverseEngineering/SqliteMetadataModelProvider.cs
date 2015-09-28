@@ -7,9 +7,10 @@ using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Metadata.Conventions;
+using Microsoft.Data.Entity.Metadata.Internal;
 using Microsoft.Data.Entity.Relational.Design.ReverseEngineering;
+using Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Internal;
 using Microsoft.Data.Entity.Relational.Design.Utilities;
-using Microsoft.Data.Entity.Sqlite.Metadata;
 using Microsoft.Data.Entity.Utilities;
 using Microsoft.Data.Sqlite;
 using Microsoft.Framework.Logging;
@@ -21,17 +22,18 @@ namespace Microsoft.Data.Entity.Sqlite.Design.ReverseEngineering
         private readonly SqliteReverseTypeMapper _typeMapper;
 
         public SqliteMetadataModelProvider(
-            [NotNull] ILogger logger,
+            [NotNull] ILoggerFactory loggerFactory,
             [NotNull] ModelUtilities modelUtilities,
+            [NotNull] CSharpUtilities cSharpUtilities,
             [NotNull] SqliteReverseTypeMapper typeMapper)
-            : base(logger, modelUtilities)
+            : base(loggerFactory, modelUtilities, cSharpUtilities)
         {
             Check.NotNull(typeMapper, nameof(typeMapper));
 
             _typeMapper = typeMapper;
         }
 
-        protected override IRelationalMetadataExtensionProvider ExtensionsProvider => new SqliteMetadataExtensionProvider();
+        protected override IRelationalAnnotationProvider ExtensionsProvider => new SqliteAnnotationProvider();
 
         public override IModel ConstructRelationalModel([NotNull] string connectionString)
         {
@@ -56,18 +58,19 @@ namespace Microsoft.Data.Entity.Sqlite.Design.ReverseEngineering
                         var tableName = reader.GetString(3);
 
                         if (type == "table"
-                            && name != "sqlite_sequence")
+                            && name != "sqlite_sequence"
+                            && _tableSelectionSet.Allows(TableSelection.Any, name))
                         {
                             tables.Add(name, sql);
                         }
                         else if (type == "index")
                         {
                             indexes.Add(new SqliteIndexInfo
-                                {
-                                    Name = name,
-                                    TableName = tableName,
-                                    Sql = sql
-                                });
+                            {
+                                Name = name,
+                                TableName = tableName,
+                                Sql = sql
+                            });
                         }
                     }
                 }
@@ -282,14 +285,14 @@ namespace Microsoft.Data.Entity.Sqlite.Design.ReverseEngineering
                                 }
                                 else
                                 {
-                                    property.Required(notNull);
+                                    property.IsRequired(notNull);
                                 }
                             }
                         }
 
                         if (keyProps.Count > 0)
                         {
-                            builder.Key(keyProps.ToArray());
+                            builder.HasKey(keyProps.ToArray());
                         }
                         else
                         {

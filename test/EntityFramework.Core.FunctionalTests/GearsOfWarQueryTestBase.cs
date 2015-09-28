@@ -35,7 +35,7 @@ namespace Microsoft.Data.Entity.FunctionalTests
         {
             using (var context = CreateContext())
             {
-                var query = context.Tags.Include(t => t.Gear.Reports);
+                var query = context.Tags.Include(t => t.Gear.Weapons);
                 var result = query.ToList();
 
                 Assert.Equal(6, result.Count);
@@ -43,7 +43,7 @@ namespace Microsoft.Data.Entity.FunctionalTests
                 var gears = result.Select(t => t.Gear).Where(g => g != null).ToList();
                 Assert.Equal(5, gears.Count);
 
-                Assert.True(gears.All(g => g.Reports != null));
+                Assert.True(gears.All(g => g.Weapons != null));
             }
         }
 
@@ -159,6 +159,7 @@ namespace Microsoft.Data.Entity.FunctionalTests
             }
 
             ClearLog();
+
             using (var context = CreateContext())
             {
                 var query = context.Gears
@@ -219,6 +220,182 @@ namespace Microsoft.Data.Entity.FunctionalTests
                         }
                     }
                 }
+            }
+        }
+
+        [Fact]
+        public virtual void Include_navigation_on_derived_type()
+        {
+            using (var context = CreateContext())
+            {
+                var query = context.Gears.OfType<Officer>().Include(o => o.Reports);
+                var result = query.ToList();
+
+                Assert.Equal(2, result.Count);
+
+                var marcusReports = result.Where(e => e.Nickname == "Marcus").Single().Reports.ToList();
+                Assert.Equal(3, marcusReports.Count);
+                Assert.Contains("Baird", marcusReports.Select(g => g.Nickname));
+                Assert.Contains("Cole Train", marcusReports.Select(g => g.Nickname));
+                Assert.Contains("Dom", marcusReports.Select(g => g.Nickname));
+
+                var bairdReports = result.Where(e => e.Nickname == "Baird").Single().Reports.ToList();
+                Assert.Equal(1, bairdReports.Count);
+                Assert.Contains("Paduk", bairdReports.Select(g => g.Nickname));
+            }
+        }
+
+        [Fact]
+        public virtual void Select_Where_Navigation_Included()
+        {
+            using (var context = CreateContext())
+            {
+                var cogTags
+                    = (from ct in context.Set<CogTag>().Include(o => o.Gear)
+                       where ct.Gear.Nickname == "Marcus"
+                       select ct).ToList();
+
+                Assert.Equal(1, cogTags.Count);
+                Assert.True(cogTags.All(o => o.Gear != null));
+            }
+        }
+
+        [Fact]
+        public virtual void Include_with_join_reference1()
+        {
+            using (var context = CreateContext())
+            {
+                var query = context.Gears.Join(
+                    context.Tags,
+                    g => new { SquadId = (int?)g.SquadId, Nickname = g.Nickname },
+                    t => new { SquadId = t.GearSquadId, Nickname = t.GearNickName },
+                    (Gear g, CogTag t) => g).Include(g => g.CityOfBirth);
+
+                var result = query.ToList();
+                Assert.Equal(5, result.Count);
+                Assert.True(result.All(g => g.CityOfBirth != null));
+            }
+        }
+
+        [Fact]
+        public virtual void Include_with_join_reference2()
+        {
+            using (var context = CreateContext())
+            {
+                var query = context.Tags.Join(
+                    context.Gears,
+                    t => new { SquadId = t.GearSquadId, Nickname = t.GearNickName },
+                    g => new { SquadId = (int?)g.SquadId, Nickname = g.Nickname },
+                    (CogTag t, Gear g) => g).Include(g => g.CityOfBirth);
+
+                var result = query.ToList();
+                Assert.Equal(5, result.Count);
+                Assert.True(result.All(g => g.CityOfBirth != null));
+            }
+        }
+
+        [Fact]
+        public virtual void Include_with_join_collection1()
+        {
+            using (var context = CreateContext())
+            {
+                var query = context.Gears.Join(
+                    context.Tags,
+                    g => new { SquadId = (int?)g.SquadId, Nickname = g.Nickname },
+                    t => new { SquadId = t.GearSquadId, Nickname = t.GearNickName },
+                    (Gear g, CogTag t) => g).Include(g => g.Weapons);
+
+                var result = query.ToList();
+                Assert.Equal(5, result.Count);
+                Assert.True(result.All(g => g.Weapons.Count > 0));
+            }
+        }
+
+        [Fact]
+        public virtual void Include_with_join_collection2()
+        {
+            using (var context = CreateContext())
+            {
+                var query = context.Tags.Join(
+                    context.Gears,
+                    t => new { SquadId = t.GearSquadId, Nickname = t.GearNickName },
+                    g => new { SquadId = (int?)g.SquadId, Nickname = g.Nickname },
+                    (CogTag t, Gear g) => g).Include(g => g.Weapons);
+
+                var result = query.ToList();
+                Assert.Equal(5, result.Count);
+                Assert.True(result.All(g => g.Weapons.Count > 0));
+            }
+        }
+
+        [Fact]
+        public virtual void Include_with_join_multi_level()
+        {
+            using (var context = CreateContext())
+            {
+                var query = context.Gears.Join(
+                    context.Tags,
+                    g => new { SquadId = (int?)g.SquadId, Nickname = g.Nickname },
+                    t => new { SquadId = t.GearSquadId, Nickname = t.GearNickName },
+                    (Gear g, CogTag t) => g).Include(g => g.CityOfBirth.StationedGears);
+
+                var result = query.ToList();
+                Assert.Equal(5, result.Count);
+                Assert.True(result.All(g => g.CityOfBirth != null));
+            }
+        }
+
+        // issue #3235
+        //[Fact]
+        public virtual void Include_with_join_and_inheritance1()
+        {
+            using (var context = CreateContext())
+            {
+                var query = context.Tags.Join(
+                    context.Gears.OfType<Officer>(),
+                    t => new { SquadId = t.GearSquadId, Nickname = t.GearNickName },
+                    o => new { SquadId = (int?)o.SquadId, Nickname = o.Nickname },
+                    (CogTag t, Officer o) => o).Include(o => o.CityOfBirth);
+
+                var result = query.ToList();
+                Assert.Equal(2, result.Count);
+                Assert.True(result.All(o => o.CityOfBirth != null));
+            }
+        }
+
+        // issue #3235
+        //[Fact]
+        public virtual void Include_with_join_and_inheritance2()
+        {
+            using (var context = CreateContext())
+            {
+                var query = context.Gears.OfType<Officer>().Join(
+                    context.Tags,
+                    o => new { SquadId = (int?)o.SquadId, Nickname = o.Nickname },
+                    t => new { SquadId = t.GearSquadId, Nickname = t.GearNickName },
+                    (Officer o, CogTag t) => o).Include(g => g.Weapons);
+
+                var result = query.ToList();
+                Assert.Equal(2, result.Count);
+                Assert.True(result.All(o => o.Weapons.Count > 0));
+            }
+        }
+
+        // issue #3235
+        //[Fact]
+        public virtual void Include_with_join_and_inheritance3()
+        {
+            using (var context = CreateContext())
+            {
+                var query = context.Tags.Join(
+                    context.Gears.OfType<Officer>(),
+                    t => new { SquadId = t.GearSquadId, Nickname = t.GearNickName },
+                    g => new { SquadId = (int?)g.SquadId, Nickname = g.Nickname },
+                    (CogTag t, Officer o) => o).Include(o => o.Reports);
+
+                var result = query.ToList();
+                Assert.Equal(1, result.Count);
+                Assert.True(result.All(o => o.Reports.Count > 0));
             }
         }
 
@@ -404,30 +581,15 @@ namespace Microsoft.Data.Entity.FunctionalTests
         }
 
         [Fact]
-        public virtual void Select_Where_Navigation_Included()
-        {
-            using (var context = CreateContext())
-            {
-                var cogTags
-                    = (from o in context.Set<CogTag>().Include(o => o.Gear)
-                        where o.Gear.Nickname == "Marcus"
-                        select o).ToList();
-
-                Assert.Equal(1, cogTags.Count);
-                Assert.True(cogTags.All(o => o.Gear != null));
-            }
-        }
-
-        [Fact]
         public virtual void Singleton_Navigation_With_Member_Access()
         {
             using (var context = CreateContext())
             {
                 var cogTags
-                    = (from o in context.Set<CogTag>()
-                        where o.Gear.Nickname == "Marcus"
-                        where o.Gear.CityOrBirthName != "Ephyra"
-                        select new { B = o.Gear.CityOrBirthName }).ToList();
+                    = (from ct in context.Set<CogTag>()
+                        where ct.Gear.Nickname == "Marcus"
+                        where ct.Gear.CityOrBirthName != "Ephyra"
+                        select new { B = ct.Gear.CityOrBirthName }).ToList();
 
                 Assert.Equal(1, cogTags.Count);
                 Assert.True(cogTags.All(o => o.B != null));
@@ -440,13 +602,30 @@ namespace Microsoft.Data.Entity.FunctionalTests
             using (var context = CreateContext())
             {
                 var cogTags
-                    = (from o in context.Set<CogTag>()
-                        where o.Gear.Nickname == "Marcus"
-                        where o.Gear.CityOrBirthName != "Ephyra"
-                        select new { A = o.Gear, B = o.Gear.CityOrBirthName }).ToList();
+                    = (from ct in context.Set<CogTag>()
+                        where ct.Gear.Nickname == "Marcus"
+                        where ct.Gear.CityOrBirthName != "Ephyra"
+                        select new { A = ct.Gear, B = ct.Gear.CityOrBirthName }).ToList();
 
                 Assert.Equal(1, cogTags.Count);
                 Assert.True(cogTags.All(o => o.A != null && o.B != null));
+            }
+        }
+
+        [Fact]
+        public virtual void GroupJoin_Composite_Key()
+        {
+            using (var context = CreateContext())
+            {
+                var gears
+                    = (from ct in context.Set<CogTag>()
+                        join g in context.Set<Gear>()
+                            on new { N = ct.GearNickName, S = ct.GearSquadId }
+                            equals new { N = g.Nickname, S = (int?)g.SquadId } into gs
+                        from g in gs
+                        select g).ToList();
+
+                Assert.Equal(5, gears.Count);
             }
         }
 

@@ -10,8 +10,9 @@ using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using Microsoft.Data.Entity.Query.ExpressionVisitors;
-using Microsoft.Data.Entity.Query.ResultOperators;
+using Microsoft.Data.Entity.Query.ExpressionVisitors.Internal;
+using Microsoft.Data.Entity.Query.Internal;
+using Microsoft.Data.Entity.Query.ResultOperators.Internal;
 using Microsoft.Data.Entity.Storage;
 using Microsoft.Data.Entity.Utilities;
 using Remotion.Linq.Clauses.StreamedData;
@@ -26,7 +27,7 @@ namespace Microsoft.Data.Entity.Query
     public class QueryCompiler : IQueryCompiler
     {
         private static MethodInfo CompileQueryMethod { get; }
-            = typeof(IDatabase).GetTypeInfo().GetDeclaredMethod("CompileQuery");
+            = typeof(IDatabase).GetTypeInfo().GetDeclaredMethod(nameof(IDatabase.CompileQuery));
 
         private static readonly INodeTypeProvider _nodeTypeProvider = CreateNodeTypeProvider();
         private static readonly IEvaluatableExpressionFilter _evaluatableExpressionFilter = new EvaluatableExpressionFilter();
@@ -101,12 +102,12 @@ namespace Microsoft.Data.Entity.Query
             return ParameterExtractingExpressionVisitor
                 .ExtractParameters(query, queryContext, _evaluatableExpressionFilter);
         }
-        
+
         protected virtual Func<QueryContext, TResult> CompileQuery<TResult>([NotNull] Expression query)
         {
             Check.NotNull(query, nameof(query));
 
-            return _cache.GetOrAddQuery(_cacheKeyGenerator.GenerateCacheKey(query, _database, async: false), () =>
+            return _cache.GetOrAddQuery(_cacheKeyGenerator.GenerateCacheKey(query, async: false), () =>
                 {
                     var queryModel = CreateQueryParser().GetParsedQuery(query);
 
@@ -139,7 +140,7 @@ namespace Microsoft.Data.Entity.Query
         {
             Check.NotNull(query, nameof(query));
 
-            return _cache.GetOrAddAsyncQuery(_cacheKeyGenerator.GenerateCacheKey(query, _database, async: true), () =>
+            return _cache.GetOrAddAsyncQuery(_cacheKeyGenerator.GenerateCacheKey(query, async: true), () =>
                 {
                     var queryModel = CreateQueryParser().GetParsedQuery(query);
 
@@ -160,13 +161,16 @@ namespace Microsoft.Data.Entity.Query
         private class EvaluatableExpressionFilter : EvaluatableExpressionFilterBase
         {
             private static readonly PropertyInfo _dateTimeNow
-                = typeof(DateTime).GetTypeInfo().GetDeclaredProperty("Now");
+                = typeof(DateTime).GetTypeInfo().GetDeclaredProperty(nameof(DateTime.Now));
 
-            public override bool IsEvaluatableMethodCall(MethodCallExpression methodCallExpression) 
+            private static readonly PropertyInfo _dateTimeUtcNow
+                = typeof(DateTime).GetTypeInfo().GetDeclaredProperty(nameof(DateTime.UtcNow));
+
+            public override bool IsEvaluatableMethodCall(MethodCallExpression methodCallExpression)
                 => typeof(IQueryable).IsAssignableFrom(methodCallExpression.Type);
 
-            public override bool IsEvaluatableMember(MemberExpression memberExpression) 
-                => memberExpression.Member != _dateTimeNow;
+            public override bool IsEvaluatableMember(MemberExpression memberExpression)
+                => memberExpression.Member != _dateTimeNow && memberExpression.Member != _dateTimeUtcNow;
         }
 
         private static INodeTypeProvider CreateNodeTypeProvider()

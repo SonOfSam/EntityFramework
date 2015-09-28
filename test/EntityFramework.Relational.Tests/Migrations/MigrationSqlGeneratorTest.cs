@@ -3,13 +3,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Microsoft.Data.Entity.Infrastructure;
 using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Migrations.Operations;
 using Microsoft.Data.Entity.Storage;
 using Microsoft.Data.Entity.Tests;
-using Microsoft.Data.Entity.Update;
 using Xunit;
 
 namespace Microsoft.Data.Entity.Migrations
@@ -17,10 +15,18 @@ namespace Microsoft.Data.Entity.Migrations
     public class MigrationSqlGeneratorTest : MigrationSqlGeneratorTestBase
     {
         protected override IMigrationsSqlGenerator SqlGenerator
-            => new ConcreteMigrationSqlGenerator(
-                new ConcreteUpdateSqlGenerator(),
-                new ConcreteRelationalTypeMapper(),
-                new TestMetadataExtensionProvider());
+        {
+            get
+            {
+                var typeMapper = new ConcreteRelationalTypeMapper();
+
+                return new ConcreteMigrationSqlGenerator(
+                    new RelationalCommandBuilderFactory(typeMapper),
+                    new RelationalSqlGenerator(),
+                    typeMapper,
+                    new TestAnnotationProvider());
+            }
+        }
 
         public override void AddColumnOperation_with_defaultValue()
         {
@@ -118,7 +124,7 @@ namespace Microsoft.Data.Entity.Migrations
             base.AlterSequenceOperation_with_minValue_and_maxValue();
 
             Assert.Equal(
-                "ALTER SEQUENCE \"dbo\".\"DefaultSequence\" INCREMENT BY 1 MINVALUE 2 MAXVALUE 816 CYCLE;" + EOL,
+                "ALTER SEQUENCE \"dbo\".\"EntityFrameworkHiLoSequence\" INCREMENT BY 1 MINVALUE 2 MAXVALUE 816 CYCLE;" + EOL,
                 Sql);
         }
 
@@ -127,7 +133,7 @@ namespace Microsoft.Data.Entity.Migrations
             base.AlterSequenceOperation_without_minValue_and_maxValue();
 
             Assert.Equal(
-                "ALTER SEQUENCE \"DefaultSequence\" INCREMENT BY 1 NO MINVALUE NO MAXVALUE NO CYCLE;" + EOL,
+                "ALTER SEQUENCE \"EntityFrameworkHiLoSequence\" INCREMENT BY 1 NO MINVALUE NO MAXVALUE NO CYCLE;" + EOL,
                 Sql);
         }
 
@@ -154,7 +160,7 @@ namespace Microsoft.Data.Entity.Migrations
             base.CreateSequenceOperation_with_minValue_and_maxValue();
 
             Assert.Equal(
-                "CREATE SEQUENCE \"dbo\".\"DefaultSequence\" START WITH 3 INCREMENT BY 1 MINVALUE 2 MAXVALUE 816 CYCLE;" + EOL,
+                "CREATE SEQUENCE \"dbo\".\"EntityFrameworkHiLoSequence\" START WITH 3 INCREMENT BY 1 MINVALUE 2 MAXVALUE 816 CYCLE;" + EOL,
                 Sql);
         }
 
@@ -163,7 +169,7 @@ namespace Microsoft.Data.Entity.Migrations
             base.CreateSequenceOperation_with_minValue_and_maxValue_not_long();
 
             Assert.Equal(
-                "CREATE SEQUENCE \"dbo\".\"DefaultSequence\" AS int START WITH 3 INCREMENT BY 1 MINVALUE 2 MAXVALUE 816 CYCLE;" + EOL,
+                "CREATE SEQUENCE \"dbo\".\"EntityFrameworkHiLoSequence\" AS int START WITH 3 INCREMENT BY 1 MINVALUE 2 MAXVALUE 816 CYCLE;" + EOL,
                 Sql);
         }
 
@@ -172,7 +178,7 @@ namespace Microsoft.Data.Entity.Migrations
             base.CreateSequenceOperation_without_minValue_and_maxValue();
 
             Assert.Equal(
-                "CREATE SEQUENCE \"DefaultSequence\" START WITH 3 INCREMENT BY 1 NO MINVALUE NO MAXVALUE NO CYCLE;" + EOL,
+                "CREATE SEQUENCE \"EntityFrameworkHiLoSequence\" START WITH 3 INCREMENT BY 1 NO MINVALUE NO MAXVALUE NO CYCLE;" + EOL,
                 Sql);
         }
 
@@ -224,7 +230,7 @@ namespace Microsoft.Data.Entity.Migrations
             base.DropSequenceOperation();
 
             Assert.Equal(
-                "DROP SEQUENCE \"dbo\".\"DefaultSequence\";" + EOL,
+                "DROP SEQUENCE \"dbo\".\"EntityFrameworkHiLoSequence\";" + EOL,
                 Sql);
         }
 
@@ -270,19 +276,6 @@ namespace Microsoft.Data.Entity.Migrations
                 Sql);
         }
 
-        private class ConcreteUpdateSqlGenerator : UpdateSqlGenerator
-        {
-            protected override void AppendIdentityWhereCondition(
-                StringBuilder commandStringBuilder,
-                ColumnModification columnModification)
-            {
-            }
-
-            protected override void AppendRowsAffectedWhereCondition(StringBuilder commandStringBuilder, int expectedRowsAffected)
-            {
-            }
-        }
-
         private class ConcreteRelationalTypeMapper : RelationalTypeMapper
         {
             protected override IReadOnlyDictionary<Type, RelationalTypeMapping> SimpleMappings { get; }
@@ -301,38 +294,39 @@ namespace Microsoft.Data.Entity.Migrations
         private class ConcreteMigrationSqlGenerator : MigrationsSqlGenerator
         {
             public ConcreteMigrationSqlGenerator(
-                IUpdateSqlGenerator sqlGenerator,
+                IRelationalCommandBuilderFactory commandBuilderFactory,
+                ISqlGenerator sqlGenerator,
                 IRelationalTypeMapper typeMapper,
-                IRelationalMetadataExtensionProvider annotations)
-                : base(sqlGenerator, typeMapper, annotations)
+                IRelationalAnnotationProvider annotations)
+                : base(commandBuilderFactory, sqlGenerator, typeMapper, annotations)
             {
             }
 
-            protected override void Generate(RenameTableOperation operation, IModel model, SqlBatchBuilder builder)
+            protected override void Generate(RenameTableOperation operation, IModel model, RelationalCommandListBuilder builder)
             {
             }
 
-            protected override void Generate(DropIndexOperation operation, IModel model, SqlBatchBuilder builder)
+            protected override void Generate(DropIndexOperation operation, IModel model, RelationalCommandListBuilder builder)
             {
             }
 
-            protected override void Generate(RenameSequenceOperation operation, IModel model, SqlBatchBuilder builder)
+            protected override void Generate(RenameSequenceOperation operation, IModel model, RelationalCommandListBuilder builder)
             {
             }
 
-            protected override void Generate(RenameColumnOperation operation, IModel model, SqlBatchBuilder builder)
+            protected override void Generate(RenameColumnOperation operation, IModel model, RelationalCommandListBuilder builder)
             {
             }
 
-            protected override void Generate(EnsureSchemaOperation operation, IModel model, SqlBatchBuilder builder)
+            protected override void Generate(EnsureSchemaOperation operation, IModel model, RelationalCommandListBuilder builder)
             {
             }
 
-            protected override void Generate(RenameIndexOperation operation, IModel model, SqlBatchBuilder builder)
+            protected override void Generate(RenameIndexOperation operation, IModel model, RelationalCommandListBuilder builder)
             {
             }
 
-            protected override void Generate(AlterColumnOperation operation, IModel model, SqlBatchBuilder builder)
+            protected override void Generate(AlterColumnOperation operation, IModel model, RelationalCommandListBuilder builder)
             {
             }
         }

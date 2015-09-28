@@ -10,7 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.Entity.Infrastructure;
 using Microsoft.Data.Entity.Storage;
-using Microsoft.Data.Entity.Storage.Commands;
+using Microsoft.Data.Entity.Storage.Internal;
 using Microsoft.Data.Entity.Tests;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
@@ -152,8 +152,10 @@ namespace Microsoft.Data.Entity.SqlServer.Tests
 
         private class FakeSqlStatementExecutor : SqlStatementExecutor
         {
-            public FakeSqlStatementExecutor(ILoggerFactory loggerFactory, IRelationalTypeMapper typeMapper)
-                : base(loggerFactory, typeMapper)
+            public FakeSqlStatementExecutor(
+                IRelationalCommandBuilderFactory commandBuilderFactory,
+                ILoggerFactory loggerFactory)
+                : base(commandBuilderFactory, loggerFactory)
             {
             }
 

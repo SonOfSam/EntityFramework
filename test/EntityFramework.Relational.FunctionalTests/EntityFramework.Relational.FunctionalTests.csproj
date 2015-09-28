@@ -39,6 +39,7 @@
     <Compile Include="AsyncFromSqlSprocQueryTestBase.cs" />
     <Compile Include="FromSqlSprocQueryTestBase.cs" />
     <Compile Include="InheritanceRelationalFixture.cs" />
+    <Compile Include="InheritanceRelationshipsQueryRelationalFixture.cs" />
     <Compile Include="MigrationsFixtureBase.cs" />
     <Compile Include="MigrationsTestBase.cs" />
     <Compile Include="NorthwindSprocQueryRelationalFixture.cs" />
@@ -52,6 +53,7 @@
     <Compile Include="GearsOfWarQueryRelationalFixture.cs" />
     <Compile Include="NorthwindQueryRelationalFixture.cs" />
     <Compile Include="FromSqlQueryTestBase.cs" />
+    <Compile Include="QueryNoClientEvalTestBase.cs" />
     <Compile Include="RelationalTestHelpers.cs" />
     <Compile Include="RelationalTestStore.cs" />
     <Compile Include="SqlExecutorTestBase.cs" />

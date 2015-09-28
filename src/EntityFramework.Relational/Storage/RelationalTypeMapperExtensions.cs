@@ -10,15 +10,13 @@ namespace Microsoft.Data.Entity.Storage
     {
         private static readonly RelationalTypeMapping _nullTypeMapping = new RelationalTypeMapping("NULL");
 
-        public static RelationalTypeMapping GetDefaultMapping(
+        public static RelationalTypeMapping GetMapping(
             [CanBeNull] this IRelationalTypeMapper typeMapper,
             [CanBeNull] object value)
-        {
-            return value == null
-                   || value == DBNull.Value
-                   || typeMapper == null
+            => value == null
+               || value == DBNull.Value
+               || typeMapper == null
                 ? _nullTypeMapping
-                : typeMapper.GetDefaultMapping(value.GetType());
-        }
+                : typeMapper.GetMapping(value.GetType());
     }
 }

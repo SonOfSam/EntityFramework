@@ -17,7 +17,7 @@ namespace EntityFramework.Microbenchmarks
     public partial class InitializationTests : IClassFixture<AdventureWorksFixture>
     {
         [Benchmark]
-#if !DNXCORE50
+#if !DNXCORE50 && !DNX451
         [BenchmarkVariation("Cold (1 instance)", true, 1)]
 #endif
         [BenchmarkVariation("Warm (100 instances)", false, 100)]
@@ -27,7 +27,7 @@ namespace EntityFramework.Microbenchmarks
         }
 
         [AdventureWorksDatabaseBenchmark]
-#if !DNXCORE50
+#if !DNXCORE50 && !DNX451
         [BenchmarkVariation("Cold (1 instance)", true, 1)]
 #endif
         [BenchmarkVariation("Warm (10 instances)", false, 10)]
@@ -37,7 +37,7 @@ namespace EntityFramework.Microbenchmarks
         }
 
         [AdventureWorksDatabaseBenchmark]
-#if !DNXCORE50
+#if !DNXCORE50 && !DNX451
         [BenchmarkVariation("Cold (1 instance)", true, 1)]
 #endif
         [BenchmarkVariation("Warm (10 instances)", false, 10)]
@@ -127,10 +127,10 @@ namespace EntityFramework.Microbenchmarks
                     {
                         using (var context = AdventureWorksFixture.CreateContext())
                         {
-                            context.Department.Add(new Department
+                            context.Currency.Add(new Currency
                             {
-                                Name = "Benchmarking",
-                                GroupName = "Engineering"
+                                CurrencyCode = "TMP",
+                                Name = "Temporary"
                             });
 
                             using (context.Database.BeginTransaction())

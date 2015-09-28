@@ -3,10 +3,11 @@
 
 using System;
 using JetBrains.Annotations;
-using Microsoft.Data.Entity.Metadata;
+using Microsoft.Data.Entity.Metadata.Internal;
+using Microsoft.Data.Entity.SqlServer;
 using Microsoft.Data.Entity.Utilities;
 
-namespace Microsoft.Data.Entity.SqlServer.Metadata
+namespace Microsoft.Data.Entity.Metadata
 {
     public class SqlServerPropertyAnnotations : RelationalPropertyAnnotations, ISqlServerPropertyAnnotations
     {
@@ -38,23 +39,7 @@ namespace Microsoft.Data.Entity.SqlServer.Metadata
         protected virtual bool SetHiLoSequenceSchema([CanBeNull] string value)
             => Annotations.SetAnnotation(SqlServerAnnotationNames.HiLoSequenceSchema, Check.NullButNotEmpty(value, nameof(value)));
 
-        public virtual int? HiLoSequencePoolSize
-        {
-            get { return (int?)Annotations.GetAnnotation(SqlServerAnnotationNames.HiLoSequencePoolSize); }
-            [param: CanBeNull] set { SetHiLoSequencePoolSize(value); }
-        }
-
-        protected virtual bool SetHiLoSequencePoolSize(int? value)
-        {
-            if (value <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(value), Entity.Internal.Strings.HiLoBadPoolSize);
-            }
-
-            return Annotations.SetAnnotation(SqlServerAnnotationNames.HiLoSequencePoolSize, value);
-        }
-
-        public virtual SqlServerIdentityStrategy? IdentityStrategy
+        public virtual SqlServerValueGenerationStrategy? ValueGenerationStrategy
         {
             get
             {
@@ -65,21 +50,21 @@ namespace Microsoft.Data.Entity.SqlServer.Metadata
                     return null;
                 }
 
-                var value = (SqlServerIdentityStrategy?)Annotations.GetAnnotation(SqlServerAnnotationNames.ValueGenerationStrategy);
+                var value = (SqlServerValueGenerationStrategy?)Annotations.GetAnnotation(SqlServerAnnotationNames.ValueGenerationStrategy);
 
-                return value ?? Property.DeclaringEntityType.Model.SqlServer().IdentityStrategy;
+                return value ?? Property.DeclaringEntityType.Model.SqlServer().ValueGenerationStrategy;
             }
             [param: CanBeNull]
-            set { SetIdentityStrategy(value); }
+            set { SetValueGenerationStrategy(value); }
         }
 
-        protected virtual bool SetIdentityStrategy(SqlServerIdentityStrategy? value)
+        protected virtual bool SetValueGenerationStrategy(SqlServerValueGenerationStrategy? value)
         {
             if (value != null)
             {
                 var propertyType = Property.ClrType;
 
-                if (value == SqlServerIdentityStrategy.IdentityColumn
+                if (value == SqlServerValueGenerationStrategy.IdentityColumn
                     && (!propertyType.IsInteger()
                         || propertyType == typeof(byte)
                         || propertyType == typeof(byte?)))
@@ -88,7 +73,7 @@ namespace Microsoft.Data.Entity.SqlServer.Metadata
                         Property.Name, Property.DeclaringEntityType.Name, propertyType.Name));
                 }
 
-                if (value == SqlServerIdentityStrategy.SequenceHiLo
+                if (value == SqlServerValueGenerationStrategy.SequenceHiLo
                     && !propertyType.IsInteger())
                 {
                     throw new ArgumentException(Strings.SequenceBadType(
@@ -103,7 +88,7 @@ namespace Microsoft.Data.Entity.SqlServer.Metadata
         {
             var modelExtensions = Property.DeclaringEntityType.Model.SqlServer();
 
-            if (IdentityStrategy != SqlServerIdentityStrategy.SequenceHiLo)
+            if (ValueGenerationStrategy != SqlServerValueGenerationStrategy.SequenceHiLo)
             {
                 return null;
             }

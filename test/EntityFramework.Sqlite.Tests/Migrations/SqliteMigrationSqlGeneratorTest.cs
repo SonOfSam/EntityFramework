@@ -2,10 +2,11 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using Microsoft.Data.Entity.Metadata.Internal;
 using Microsoft.Data.Entity.Migrations.Operations;
-using Microsoft.Data.Entity.Sqlite;
-using Microsoft.Data.Entity.Sqlite.Metadata;
-using Microsoft.Data.Entity.Update;
+using Microsoft.Data.Entity.Sqlite.Internal;
+using Microsoft.Data.Entity.Storage;
+using Microsoft.Data.Entity.Storage.Internal;
 using Xunit;
 
 namespace Microsoft.Data.Entity.Migrations
@@ -13,10 +14,47 @@ namespace Microsoft.Data.Entity.Migrations
     public class SqliteMigrationSqlGeneratorTest : MigrationSqlGeneratorTestBase
     {
         protected override IMigrationsSqlGenerator SqlGenerator
-            => new SqliteMigrationsSqlGenerator(
-                new SqliteUpdateSqlGenerator(),
-                new SqliteTypeMapper(),
-                new SqliteMetadataExtensionProvider());
+        {
+            get
+            {
+                var typeMapper = new SqliteTypeMapper();
+
+                return new SqliteMigrationsSqlGenerator(
+                    new RelationalCommandBuilderFactory(typeMapper),
+                    new SqliteSqlGenerator(),
+                    typeMapper,
+                    new SqliteAnnotationProvider());
+            }
+        }
+
+        [Fact]
+        public virtual void It_lifts_foreign_key_additions()
+        {
+            Generate(new CreateTableOperation
+            {
+                Name = "Pie",
+                Columns =
+                {
+                    new AddColumnOperation
+                    {
+                        ClrType = typeof(int),
+                        Name = "FlavorId",
+                        ColumnType = "INT"
+                    }
+                }
+            }, new AddForeignKeyOperation
+            {
+                Table = "Pie",
+                PrincipalTable = "Flavor",
+                Columns = new[] { "FlavorId" },
+                PrincipalColumns = new[] { "Id" }
+            });
+
+            Assert.Equal(@"CREATE TABLE ""Pie"" (
+    ""FlavorId"" INT NOT NULL,
+    FOREIGN KEY (""FlavorId"") REFERENCES ""Flavor"" (""Id"")
+);" + EOL, Sql);
+        }
 
         [Fact]
         public virtual void DefaultValue_formats_literal_correctly()
@@ -51,7 +89,7 @@ namespace Microsoft.Data.Entity.Migrations
                 Name = "Id",
                 ClrType = typeof(long),
                 ColumnType = "INTEGER",
-                IsNullable = false,
+                IsNullable = false
             };
             if (autoincrement)
             {
@@ -59,11 +97,11 @@ namespace Microsoft.Data.Entity.Migrations
             }
 
             Generate(
-                 new CreateTableOperation
-                 {
-                     Name = "People",
-                     Columns =
-                     {
+                new CreateTableOperation
+                {
+                    Name = "People",
+                    Columns =
+                    {
                         addIdColumn,
                         new AddColumnOperation
                         {
@@ -72,36 +110,36 @@ namespace Microsoft.Data.Entity.Migrations
                             ColumnType = "int",
                             IsNullable = true
                         },
-                         new AddColumnOperation
+                        new AddColumnOperation
                         {
                             Name = "SSN",
                             ClrType = typeof(string),
                             ColumnType = "char(11)",
                             IsNullable = true
                         }
-                     },
-                     PrimaryKey = new AddPrimaryKeyOperation
-                     {
-                         Name = pkName,
-                         Columns = new[] { "Id" }
-                     },
-                     UniqueConstraints =
-                     {
+                    },
+                    PrimaryKey = new AddPrimaryKeyOperation
+                    {
+                        Name = pkName,
+                        Columns = new[] { "Id" }
+                    },
+                    UniqueConstraints =
+                    {
                         new AddUniqueConstraintOperation
                         {
                             Columns = new[] { "SSN" }
                         }
-                     },
-                     ForeignKeys =
-                     {
+                    },
+                    ForeignKeys =
+                    {
                         new AddForeignKeyOperation
                         {
                             Columns = new[] { "EmployerId" },
                             PrincipalTable = "Companies",
                             PrincipalColumns = new[] { "Id" }
                         }
-                     }
-                 });
+                    }
+                });
 
             Assert.Equal(
                 "CREATE TABLE \"People\" (" + EOL +

@@ -20,7 +20,7 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
         private readonly ISelectExpressionFactory _selectExpressionFactory;
         private readonly IMaterializerFactory _materializerFactory;
         private readonly ICommandBuilderFactory _commandBuilderFactory;
-        private readonly IRelationalMetadataExtensionProvider _relationalMetadataExtensionProvider;
+        private readonly IRelationalAnnotationProvider _relationalAnnotationProvider;
         private readonly ISqlQueryGeneratorFactory _sqlQueryGeneratorFactory;
         private readonly IQuerySource _querySource;
         private readonly IReadOnlyList<INavigation> _navigationPath;
@@ -34,7 +34,7 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
             [NotNull] ISelectExpressionFactory selectExpressionFactory,
             [NotNull] IMaterializerFactory materializerFactory,
             [NotNull] ICommandBuilderFactory commandBuilderFactory,
-            [NotNull] IRelationalMetadataExtensionProvider relationalMetadataExtensionProvider,
+            [NotNull] IRelationalAnnotationProvider relationalAnnotationProvider,
             [NotNull] ISqlQueryGeneratorFactory sqlQueryGeneratorFactory,
             [NotNull] IQuerySource querySource,
             [NotNull] IReadOnlyList<INavigation> navigationPath,
@@ -45,7 +45,7 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
             Check.NotNull(selectExpressionFactory, nameof(selectExpressionFactory));
             Check.NotNull(materializerFactory, nameof(materializerFactory));
             Check.NotNull(commandBuilderFactory, nameof(commandBuilderFactory));
-            Check.NotNull(relationalMetadataExtensionProvider, nameof(relationalMetadataExtensionProvider));
+            Check.NotNull(relationalAnnotationProvider, nameof(relationalAnnotationProvider));
             Check.NotNull(sqlQueryGeneratorFactory, nameof(sqlQueryGeneratorFactory));
             Check.NotNull(querySource, nameof(querySource));
             Check.NotNull(navigationPath, nameof(navigationPath));
@@ -55,7 +55,7 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
             _selectExpressionFactory = selectExpressionFactory;
             _materializerFactory = materializerFactory;
             _commandBuilderFactory = commandBuilderFactory;
-            _relationalMetadataExtensionProvider = relationalMetadataExtensionProvider;
+            _relationalAnnotationProvider = relationalAnnotationProvider;
             _sqlQueryGeneratorFactory = sqlQueryGeneratorFactory;
             _querySource = querySource;
             _navigationPath = navigationPath;
@@ -120,7 +120,7 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
                 navigationCount++;
 
                 var targetEntityType = navigation.GetTargetType();
-                var targetTableName = _relationalMetadataExtensionProvider.For(targetEntityType).TableName;
+                var targetTableName = _relationalAnnotationProvider.For(targetEntityType).TableName;
                 var targetTableAlias = targetTableName[0].ToString().ToLower();
 
                 if (!navigation.IsCollection())
@@ -128,7 +128,7 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
                     var joinedTableExpression
                         = new TableExpression(
                             targetTableName,
-                            _relationalMetadataExtensionProvider.For(targetEntityType).Schema,
+                            _relationalAnnotationProvider.For(targetEntityType).Schema,
                             targetTableAlias,
                             querySource);
 
@@ -146,6 +146,8 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
                             : selectExpression
                                 .AddOuterJoin(joinedTableExpression);
 
+                    var oldPredicate = selectExpression.Predicate;
+
                     var materializer
                         = _materializerFactory
                             .CreateMaterializer(
@@ -154,10 +156,20 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
                                 (p, se) => se.AddToProjection(
                                     new AliasExpression(
                                         new ColumnExpression(
-                                            _relationalMetadataExtensionProvider.For(p).ColumnName,
+                                            _relationalAnnotationProvider.For(p).ColumnName,
                                             p,
                                             joinedTableExpression))) - valueBufferOffset,
                                 querySource: null);
+
+                    if (selectExpression.Predicate != oldPredicate)
+                    {
+                        var newJoinExpression = AdjustJoinExpression(selectExpression, joinExpression);
+
+                        selectExpression.Predicate = oldPredicate;
+                        selectExpression.RemoveTable(joinExpression);
+                        selectExpression.AddTable(newJoinExpression);
+                        joinExpression = newJoinExpression;
+                    }
 
                     joinExpression.Predicate
                         = BuildJoinEqualityExpression(
@@ -189,7 +201,7 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
                     {
                         selectExpression
                             .AddToOrderBy(
-                                _relationalMetadataExtensionProvider.For(property).ColumnName,
+                                _relationalAnnotationProvider.For(property).ColumnName,
                                 property,
                                 principalTable,
                                 OrderingDirection.Asc);
@@ -200,7 +212,7 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
                     targetTableExpression
                         = new TableExpression(
                             targetTableName,
-                            _relationalMetadataExtensionProvider.For(targetEntityType).Schema,
+                            _relationalAnnotationProvider.For(targetEntityType).Schema,
                             targetTableAlias,
                             querySource);
 
@@ -212,7 +224,7 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
                                 targetEntityType,
                                 targetSelectExpression,
                                 (p, se) => se.AddToProjection(
-                                    _relationalMetadataExtensionProvider.For(p).ColumnName,
+                                    _relationalAnnotationProvider.For(p).ColumnName,
                                     p,
                                     querySource),
                                 querySource: null);
@@ -252,10 +264,28 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
                                         _commandBuilderFactory.Create(
                                             () => _sqlQueryGeneratorFactory
                                                 .CreateGenerator(targetSelectExpression))),
+                                    Expression.Constant(_queryCompilationContext.Logger),
                                     Expression.Constant(queryIndex, typeof(int?))),
                                 materializer));
                 }
             }
+        }
+
+        private JoinExpressionBase AdjustJoinExpression(SelectExpression selectExpression, JoinExpressionBase joinExpression)
+        {
+            var subquery = new SelectExpression(_sqlQueryGeneratorFactory, joinExpression.Alias);
+            subquery.AddTable(joinExpression.TableExpression);
+            subquery.IsProjectStar = true;
+            subquery.Predicate = selectExpression.Predicate;
+
+            var newJoinExpression = joinExpression is LeftOuterJoinExpression
+                ? (JoinExpressionBase)new LeftOuterJoinExpression(subquery)
+                : new InnerJoinExpression(subquery);
+
+            newJoinExpression.QuerySource = joinExpression.QuerySource;
+            newJoinExpression.Alias = joinExpression.Alias;
+
+            return newJoinExpression;
         }
 
         private static void LiftOrderBy(
@@ -359,7 +389,7 @@ namespace Microsoft.Data.Entity.Query.ExpressionVisitors
             if (projections.Count == 0)
             {
                 return new ColumnExpression(
-                    _relationalMetadataExtensionProvider.For(property).ColumnName,
+                    _relationalAnnotationProvider.For(property).ColumnName,
                     property,
                     tableExpression);
             }

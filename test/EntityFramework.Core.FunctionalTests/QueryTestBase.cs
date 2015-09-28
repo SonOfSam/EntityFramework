@@ -267,55 +267,62 @@ namespace Microsoft.Data.Entity.FunctionalTests
         }
 
         [Fact]
-        public virtual void Projection_when_arithmetic_expressions()
+        public virtual void Projection_when_arithmetic_expression_precendence()
         {
             AssertQuery<Order>(
-                os => os.Select(o => new
-                {
-                    o.OrderID,
-                    Double = o.OrderID * 2,
-                    Add = o.OrderID + 23,
-                    Sub = 100000 - o.OrderID,
-                    Divide = o.OrderID / (o.OrderID / 2),
-                    Literal = 42,
-                    o
-                }),
-                entryCount: 830);
+                os => os.Select(o => new { A = o.OrderID / (o.OrderID / 2), B = (o.OrderID / o.OrderID) / 2 }));
         }
 
-        [Fact]
-        public virtual void Projection_when_arithmetic_mixed()
-        {
-            AssertQuery<Order, Employee>((os, es) =>
-                from o in os
-                from e in es
-                select new
-                {
-                    Add = e.EmployeeID + o.OrderID,
-                    o.OrderID,
-                    o,
-                    Literal = 42,
-                    e.EmployeeID,
-                    e
-                });
-        }
-
-        [Fact]
-        public virtual void Projection_when_arithmetic_mixed_subqueries()
-        {
-            AssertQuery<Order, Employee>((os, es) =>
-                from o in os.Select(o2 => new { o2, Mod = o2.OrderID % 2 })
-                from e in es.Select(e2 => new { e2, Square = e2.EmployeeID ^ 2 })
-                select new
-                {
-                    Add = e.e2.EmployeeID + o.o2.OrderID,
-                    e.Square,
-                    e.e2,
-                    Literal = 42,
-                    o.o2,
-                    o.Mod
-                });
-        }
+        //        [Fact]
+        //        public virtual void Projection_when_arithmetic_expressions()
+        //        {
+        //            AssertQuery<Order>(
+        //                os => os.Select(o => new
+        //                {
+        //                    o.OrderID,
+        //                    Double = o.OrderID * 2,
+        //                    Add = o.OrderID + 23,
+        //                    Sub = 100000 - o.OrderID,
+        //                    Divide = o.OrderID / (o.OrderID / 2),
+        //                    Literal = 42,
+        //                    o
+        //                }),
+        //                entryCount: 830);
+        //        }
+        //
+        //        [Fact]
+        //        public virtual void Projection_when_arithmetic_mixed()
+        //        {
+        //            AssertQuery<Order, Employee>((os, es) =>
+        //                from o in os
+        //                from e in es
+        //                select new
+        //                {
+        //                    Add = e.EmployeeID + o.OrderID,
+        //                    o.OrderID,
+        //                    o,
+        //                    Literal = 42,
+        //                    e.EmployeeID,
+        //                    e
+        //                });
+        //        }
+        //
+        //        [Fact]
+        //        public virtual void Projection_when_arithmetic_mixed_subqueries()
+        //        {
+        //            AssertQuery<Order, Employee>((os, es) =>
+        //                from o in os.Select(o2 => new { o2, Mod = o2.OrderID % 2 })
+        //                from e in es.Select(e2 => new { e2, Square = e2.EmployeeID ^ 2 })
+        //                select new
+        //                {
+        //                    Add = e.e2.EmployeeID + o.o2.OrderID,
+        //                    e.Square,
+        //                    e.e2,
+        //                    Literal = 42,
+        //                    o.o2,
+        //                    o.Mod
+        //                });
+        //        }
 
         [Fact]
         public virtual void Projection_when_null_value()
@@ -850,6 +857,20 @@ namespace Microsoft.Data.Entity.FunctionalTests
                 entryCount: 5);
         }
 
+        // [Fact] issue #3208
+        public virtual void Where_equals_on_null_nullable_int_types()
+        {
+            int? nullableIntPrm = null;
+
+            AssertQuery<Employee>(
+                es => es.Where(e => nullableIntPrm.Equals(e.ReportsTo)),
+                entryCount: 1);
+
+            AssertQuery<Employee>(
+                es => es.Where(e => e.ReportsTo.Equals(nullableIntPrm)),
+                entryCount: 1);
+        }
+
         [Fact]
         public virtual void Where_comparison_nullable_type_not_null()
         {
@@ -880,6 +901,15 @@ namespace Microsoft.Data.Entity.FunctionalTests
             var myDatetime = new DateTime(2015, 4, 10);
             AssertQuery<Customer>(
                 cs => cs.Where(c => DateTime.Now != myDatetime),
+                entryCount: 91);
+        }
+        
+        [Fact]
+        public virtual void Where_datetime_utcnow()
+        {
+            var myDatetime = new DateTime(2015, 4, 10);
+            AssertQuery<Customer>(
+                cs => cs.Where(c => DateTime.UtcNow != myDatetime),
                 entryCount: 91);
         }
 
@@ -1124,6 +1154,17 @@ namespace Microsoft.Data.Entity.FunctionalTests
         public virtual void Where_bool_member_false()
         {
             AssertQuery<Product>(ps => ps.Where(p => !p.Discontinued), entryCount: 69);
+        }
+
+        [Fact]
+        public virtual void Where_bool_client_side_negated()
+        {
+            AssertQuery<Product>(ps => ps.Where(p => !ClientFunc(p.ProductID) && p.Discontinued), entryCount: 8);
+        }
+
+        private static bool ClientFunc(int id)
+        {
+            return false;
         }
 
         [Fact]
@@ -3011,25 +3052,21 @@ namespace Microsoft.Data.Entity.FunctionalTests
             AssertQuery<Employee>(es => es.OrderBy(o => ClientEvalSelectorStateless()).Take(10), entryCount: 9);
         }
 
-        public static bool ClientEvalPredicateStateless()
+        [Fact]
+        public virtual void OrderBy_arithmetic()
         {
-            return true;
+            AssertQuery<Employee>(
+                es => es.OrderBy(e => e.EmployeeID - e.EmployeeID),
+                entryCount: 9);
         }
 
-        protected static bool ClientEvalPredicate(Order order)
-        {
-            return order.OrderID > 10000;
-        }
+        public static bool ClientEvalPredicateStateless() => true;
 
-        private static int ClientEvalSelectorStateless()
-        {
-            return 42;
-        }
+        protected static bool ClientEvalPredicate(Order order) => order.OrderID > 10000;
 
-        protected internal int ClientEvalSelector(Order order)
-        {
-            return order.EmployeeID.HasValue ? order.EmployeeID.Value % 10 : 0;
-        }
+        private static int ClientEvalSelectorStateless() => 42;
+
+        protected internal int ClientEvalSelector(Order order) => order.EmployeeID % 10 ?? 0;
 
         [Fact]
         public virtual void Distinct()
@@ -3748,6 +3785,16 @@ namespace Microsoft.Data.Entity.FunctionalTests
         {
             AssertQuery<Customer, Order>((cs, os) =>
                 from c in cs
+                join o in os on c.CustomerID equals o.CustomerID into orders
+                from o in orders
+                select o);
+        }
+
+        [Fact]
+        public virtual void GroupJoin_simple_ordering()
+        {
+            AssertQuery<Customer, Order>((cs, os) =>
+                from c in cs.OrderBy(c => c.City)
                 join o in os on c.CustomerID equals o.CustomerID into orders
                 from o in orders
                 select o);

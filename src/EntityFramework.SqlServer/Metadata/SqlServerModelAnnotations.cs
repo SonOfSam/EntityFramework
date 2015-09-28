@@ -1,12 +1,11 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
 using JetBrains.Annotations;
-using Microsoft.Data.Entity.Metadata;
+using Microsoft.Data.Entity.Metadata.Internal;
 using Microsoft.Data.Entity.Utilities;
 
-namespace Microsoft.Data.Entity.SqlServer.Metadata
+namespace Microsoft.Data.Entity.Metadata
 {
     public class SqlServerModelAnnotations : RelationalModelAnnotations, ISqlServerModelAnnotations
     {
@@ -26,7 +25,7 @@ namespace Microsoft.Data.Entity.SqlServer.Metadata
             [param: CanBeNull] set { SetHiLoSequenceName(value); }
         }
 
-        protected virtual bool SetHiLoSequenceName([CanBeNull]string value)
+        protected virtual bool SetHiLoSequenceName([CanBeNull] string value)
             => Annotations.SetAnnotation(SqlServerAnnotationNames.HiLoSequenceName, Check.NullButNotEmpty(value, nameof(value)));
 
         public virtual string HiLoSequenceSchema
@@ -35,32 +34,16 @@ namespace Microsoft.Data.Entity.SqlServer.Metadata
             [param: CanBeNull] set { SetHiLoSequenceSchema(value); }
         }
 
-        protected virtual bool SetHiLoSequenceSchema([CanBeNull]string value)
+        protected virtual bool SetHiLoSequenceSchema([CanBeNull] string value)
             => Annotations.SetAnnotation(SqlServerAnnotationNames.HiLoSequenceSchema, Check.NullButNotEmpty(value, nameof(value)));
 
-        public virtual int? HiLoSequencePoolSize
+        public virtual SqlServerValueGenerationStrategy? ValueGenerationStrategy
         {
-            get { return (int?)Annotations.GetAnnotation(SqlServerAnnotationNames.HiLoSequencePoolSize); }
-            set { SetHiLoSequencePoolSize(value); }
+            get { return (SqlServerValueGenerationStrategy?)Annotations.GetAnnotation(SqlServerAnnotationNames.ValueGenerationStrategy); }
+            set { SetValueGenerationStrategy(value); }
         }
 
-        protected virtual bool SetHiLoSequencePoolSize(int? value)
-        {
-            if (value <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(value), Entity.Internal.Strings.HiLoBadPoolSize);
-            }
-
-            return Annotations.SetAnnotation(SqlServerAnnotationNames.HiLoSequencePoolSize, value);
-        }
-
-        public virtual SqlServerIdentityStrategy? IdentityStrategy
-        {
-            get { return (SqlServerIdentityStrategy?)Annotations.GetAnnotation(SqlServerAnnotationNames.ValueGenerationStrategy); }
-            set { SetIdentityStrategy(value); }
-        }
-
-        protected virtual bool SetIdentityStrategy(SqlServerIdentityStrategy? value)
+        protected virtual bool SetValueGenerationStrategy(SqlServerValueGenerationStrategy? value)
             => Annotations.SetAnnotation(SqlServerAnnotationNames.ValueGenerationStrategy, value);
     }
 }

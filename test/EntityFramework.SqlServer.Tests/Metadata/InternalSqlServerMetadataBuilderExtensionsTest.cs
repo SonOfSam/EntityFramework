@@ -6,8 +6,6 @@ using System.Linq;
 using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Metadata.Conventions;
 using Microsoft.Data.Entity.Metadata.Internal;
-using Microsoft.Data.Entity.SqlServer.Metadata;
-using Microsoft.Data.Entity.SqlServer.Metadata.Internal;
 using Xunit;
 
 namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
@@ -22,14 +20,14 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
         {
             var builder = CreateBuilder();
 
-            Assert.True(builder.SqlServer(ConfigurationSource.Convention).IdentityStrategy(SqlServerIdentityStrategy.SequenceHiLo));
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, builder.Metadata.SqlServer().IdentityStrategy);
+            Assert.True(builder.SqlServer(ConfigurationSource.Convention).ValueGenerationStrategy(SqlServerValueGenerationStrategy.SequenceHiLo));
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, builder.Metadata.SqlServer().ValueGenerationStrategy);
 
-            Assert.True(builder.SqlServer(ConfigurationSource.DataAnnotation).IdentityStrategy(SqlServerIdentityStrategy.IdentityColumn));
-            Assert.Equal(SqlServerIdentityStrategy.IdentityColumn, builder.Metadata.SqlServer().IdentityStrategy);
+            Assert.True(builder.SqlServer(ConfigurationSource.DataAnnotation).ValueGenerationStrategy(SqlServerValueGenerationStrategy.IdentityColumn));
+            Assert.Equal(SqlServerValueGenerationStrategy.IdentityColumn, builder.Metadata.SqlServer().ValueGenerationStrategy);
 
-            Assert.False(builder.SqlServer(ConfigurationSource.Convention).IdentityStrategy(SqlServerIdentityStrategy.SequenceHiLo));
-            Assert.Equal(SqlServerIdentityStrategy.IdentityColumn, builder.Metadata.SqlServer().IdentityStrategy);
+            Assert.False(builder.SqlServer(ConfigurationSource.Convention).ValueGenerationStrategy(SqlServerValueGenerationStrategy.SequenceHiLo));
+            Assert.Equal(SqlServerValueGenerationStrategy.IdentityColumn, builder.Metadata.SqlServer().ValueGenerationStrategy);
 
             Assert.Equal(1, builder.Metadata.Annotations.Count(
                 a => a.Name.StartsWith(SqlServerAnnotationNames.Prefix, StringComparison.Ordinal)));
@@ -78,8 +76,8 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
         {
             var modelBuilder = CreateBuilder();
             var entityTypeBuilder = modelBuilder.Entity(typeof(Splot), ConfigurationSource.Convention);
-            var property = entityTypeBuilder.Property("Id", typeof(int), ConfigurationSource.Convention).Metadata;
-            var keyBuilder = entityTypeBuilder.Key(new[] { property }, ConfigurationSource.Convention);
+            var idProperty = entityTypeBuilder.Property("Id", ConfigurationSource.Convention).Metadata;
+            var keyBuilder = entityTypeBuilder.HasKey(new[] { idProperty.Name }, ConfigurationSource.Convention);
 
             Assert.True(keyBuilder.SqlServer(ConfigurationSource.Convention).Clustered(true));
             Assert.True(keyBuilder.Metadata.SqlServer().IsClustered);

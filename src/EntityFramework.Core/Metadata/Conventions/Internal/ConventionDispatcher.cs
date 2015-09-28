@@ -34,15 +34,33 @@ namespace Microsoft.Data.Entity.Metadata.Conventions.Internal
             return entityTypeBuilder;
         }
 
+        public virtual InternalEntityTypeBuilder OnEntityTypeMemberIgnored(
+            [NotNull] InternalEntityTypeBuilder entityTypeBuilder,
+            [NotNull] string ignoredMemberName)
+        {
+            Check.NotNull(entityTypeBuilder, nameof(entityTypeBuilder));
+            Check.NotEmpty(ignoredMemberName, nameof(ignoredMemberName));
+
+            foreach (var entityTypeMemberIgnoredConvention in _conventionSet.EntityTypeMemberIgnoredConventions)
+            {
+                if (!entityTypeMemberIgnoredConvention.Apply(entityTypeBuilder, ignoredMemberName))
+                {
+                    break;
+                }
+            }
+
+            return entityTypeBuilder;
+        }
+
         public virtual InternalEntityTypeBuilder OnBaseEntityTypeSet(
             [NotNull] InternalEntityTypeBuilder entityTypeBuilder,
-            [CanBeNull] EntityType oldBaseType)
+            [CanBeNull] EntityType previousBaseType)
         {
             Check.NotNull(entityTypeBuilder, nameof(entityTypeBuilder));
 
             foreach (var entityTypeConvention in _conventionSet.BaseEntityTypeSetConventions)
             {
-                if (!entityTypeConvention.Apply(entityTypeBuilder, oldBaseType))
+                if (!entityTypeConvention.Apply(entityTypeBuilder, previousBaseType))
                 {
                     break;
                 }
@@ -86,6 +104,21 @@ namespace Microsoft.Data.Entity.Metadata.Conventions.Internal
             {
                 keyBuilder = keyConvention.Apply(keyBuilder);
                 if (keyBuilder == null)
+                {
+                    break;
+                }
+            }
+
+            return keyBuilder;
+        }
+
+        public virtual InternalKeyBuilder OnPrimaryKeySet([NotNull] InternalKeyBuilder keyBuilder, [CanBeNull] Key previousPrimaryKey)
+        {
+            Check.NotNull(keyBuilder, nameof(keyBuilder));
+
+            foreach (var keyConvention in _conventionSet.PrimaryKeySetConventions)
+            {
+                if (!keyConvention.Apply(keyBuilder, previousPrimaryKey))
                 {
                     break;
                 }
@@ -141,6 +174,21 @@ namespace Microsoft.Data.Entity.Metadata.Conventions.Internal
             }
 
             return relationshipBuilder;
+        }
+
+        public virtual void OnNavigationRemoved(
+            [NotNull] InternalRelationshipBuilder relationshipBuilder, [NotNull] string navigationName, bool pointsToPrincipal)
+        {
+            Check.NotNull(relationshipBuilder, nameof(relationshipBuilder));
+            Check.NotNull(navigationName, nameof(navigationName));
+
+            foreach (var navigationConvention in _conventionSet.NavigationRemovedConventions)
+            {
+                if (!navigationConvention.Apply(relationshipBuilder, navigationName, pointsToPrincipal))
+                {
+                    break;
+                }
+            }
         }
 
         public virtual InternalPropertyBuilder OnPropertyAdded([NotNull] InternalPropertyBuilder propertyBuilder)

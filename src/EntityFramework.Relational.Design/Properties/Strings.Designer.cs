@@ -5,7 +5,7 @@ namespace Microsoft.Data.Entity.Relational.Design
     using System.Globalization;
     using System.Reflection;
     using System.Resources;
-	using JetBrains.Annotations;
+    using JetBrains.Annotations;
 
     public static class Strings
     {
@@ -21,11 +21,11 @@ namespace Microsoft.Data.Entity.Relational.Design
         }
 
         /// <summary>
-        /// At line {lineNumber}. Message: {message}
+        /// The context class name passed in, {contextClassName}, is not a valid C# identifier.
         /// </summary>
-        public static string ErrorMessageWithLineNumber([CanBeNull] object lineNumber, [CanBeNull] object message)
+        public static string ContextClassNotValidCSharpIdentifier([CanBeNull] object contextClassName)
         {
-            return string.Format(CultureInfo.CurrentCulture, GetString("ErrorMessageWithLineNumber", "lineNumber", "message"), lineNumber, message);
+            return string.Format(CultureInfo.CurrentCulture, GetString("ContextClassNotValidCSharpIdentifier", "contextClassName"), contextClassName);
         }
 
         /// <summary>
@@ -42,14 +42,6 @@ namespace Microsoft.Data.Entity.Relational.Design
         public static string ErrorRunningEntityTypeTemplate([CanBeNull] object errorMessage)
         {
             return string.Format(CultureInfo.CurrentCulture, GetString("ErrorRunningEntityTypeTemplate", "errorMessage"), errorMessage);
-        }
-
-        /// <summary>
-        /// Unable to use the output path, {outputPath}. It must be a relative path which is a sub-directory of the project directory {projectPath}.
-        /// </summary>
-        public static string NotRelativePath([CanBeNull] object outputPath, [CanBeNull] object projectPath)
-        {
-            return string.Format(CultureInfo.CurrentCulture, GetString("NotRelativePath", "outputPath", "projectPath"), outputPath, projectPath);
         }
 
         /// <summary>
@@ -122,14 +114,6 @@ namespace Microsoft.Data.Entity.Relational.Design
         public static string UnableToGenerateEntityType([CanBeNull] object entityTypeName, [CanBeNull] object errorMessage)
         {
             return string.Format(CultureInfo.CurrentCulture, GetString("UnableToGenerateEntityType", "entityTypeName", "errorMessage"), entityTypeName, errorMessage);
-        }
-
-        /// <summary>
-        /// Using custom template {customTemplateFilePath}
-        /// </summary>
-        public static string UsingCustomTemplate([CanBeNull] object customTemplateFilePath)
-        {
-            return string.Format(CultureInfo.CurrentCulture, GetString("UsingCustomTemplate", "customTemplateFilePath"), customTemplateFilePath);
         }
 
         private static string GetString(string name, params string[] formatterNames)

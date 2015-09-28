@@ -10,7 +10,8 @@ using Microsoft.Data.Entity.Utilities;
 
 namespace Microsoft.Data.Entity.Metadata.Conventions.Internal
 {
-    public class RelationshipDiscoveryConvention : IEntityTypeConvention
+    public class RelationshipDiscoveryConvention :
+        IEntityTypeConvention, IEntityTypeMemberIgnoredConvention, INavigationRemovedConvention
     {
         public virtual InternalEntityTypeBuilder Apply(InternalEntityTypeBuilder entityTypeBuilder)
         {
@@ -97,11 +98,18 @@ namespace Microsoft.Data.Entity.Metadata.Conventions.Internal
                 }
             }
 
-            // While running conventions on entityType, its source will be DataAnnotation or higher
-            // Which means that entity won't be removed while being configured even if it is unreachable
-            // This takes care of removing such unreachable entities (being run after we are done building relationships using this entity)
-            entityTypeBuilder.ModelBuilder.RemoveEntityTypesUnreachableByNavigations(ConfigurationSource.DataAnnotation);
             return entityTypeBuilder;
+        }
+        
+        public virtual bool Apply(InternalEntityTypeBuilder entityTypeBuilder, string ignoredMemberName)
+            => Apply(entityTypeBuilder) != null;
+
+        public virtual bool Apply(InternalRelationshipBuilder relationshipBuilder, string navigationName, bool pointsToPrincipal)
+        {
+            var owner = pointsToPrincipal
+                ? relationshipBuilder.Metadata.DeclaringEntityType
+                : relationshipBuilder.Metadata.PrincipalEntityType;
+            return Apply(relationshipBuilder.ModelBuilder.Entity(owner.Name, ConfigurationSource.Convention)) != null;
         }
     }
 }

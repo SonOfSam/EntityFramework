@@ -8,6 +8,7 @@ using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.Data.Entity.Relational.Design.FunctionalTests.ReverseEngineering;
 using Microsoft.Data.Entity.Relational.Design.ReverseEngineering;
+using Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Internal;
 using Microsoft.Data.Entity.SqlServer.Design.ReverseEngineering;
 using Xunit;
 using Xunit.Abstractions;
@@ -22,6 +23,24 @@ namespace Microsoft.Data.Entity.SqlServer.Design.FunctionalTests.ReverseEngineer
         public virtual string TestProjectDir => Path.Combine("E2ETest", "Output");
         public virtual string TestSubDir => "SubDir";
         public virtual string CustomizedTemplateDir => Path.Combine("E2ETest", "CustomizedTemplate", "Dir");
+        public static TableSelectionSet Filter
+        {
+            get
+            {
+                var filter = new TableSelectionSet();
+                filter.AddSelections(new TableSelection[]
+                {
+                    new TableSelection()
+                    {
+                        Schema = "dbo",
+                        Table = "FilteredOut",
+                        Exclude = true
+                    }
+                });
+
+                return filter;
+            }
+        }
 
         public SqlServerE2ETests(SqlServerE2EFixture fixture, ITestOutputHelper output)
             : base(output)
@@ -29,8 +48,8 @@ namespace Microsoft.Data.Entity.SqlServer.Design.FunctionalTests.ReverseEngineer
         }
 
         protected override E2ECompiler GetCompiler() => new E2ECompiler
-            {
-                NamedReferences =
+        {
+            NamedReferences =
                     {
                         "EntityFramework.Core",
                         "EntityFramework.Relational",
@@ -42,7 +61,7 @@ namespace Microsoft.Data.Entity.SqlServer.Design.FunctionalTests.ReverseEngineer
                         "System.ComponentModel.Annotations",
 #else
                     },
-                References =
+            References =
                     {
                         MetadataReference.CreateFromFile(
                             Assembly.Load(new AssemblyName(
@@ -56,9 +75,8 @@ namespace Microsoft.Data.Entity.SqlServer.Design.FunctionalTests.ReverseEngineer
 
         private const string _connectionString = @"Data Source=(LocalDB)\MSSQLLocalDB;Initial Catalog=SqlServerReverseEngineerTestE2E;Integrated Security=True;MultipleActiveResultSets=True;Connect Timeout=30";
 
-        private static readonly List<string> _expectedFiles = new List<string>
+        private static readonly List<string> _expectedEntityTypeFiles = new List<string>
             {
-                "SqlServerReverseEngineerTestE2EContext.expected",
                 "AllDataTypes.expected",
                 "OneToManyDependent.expected",
                 "OneToManyPrincipal.expected",
@@ -77,77 +95,28 @@ namespace Microsoft.Data.Entity.SqlServer.Design.FunctionalTests.ReverseEngineer
         public void E2ETest_UseAttributesInsteadOfFluentApi()
         {
             var configuration = new ReverseEngineeringConfiguration
-                {
-                    ConnectionString = _connectionString,
-                    CustomTemplatePath = null, // not used for this test
-                    ProjectPath = TestProjectDir,
-                    ProjectRootNamespace = TestNamespace,
-                    RelativeOutputPath = TestSubDir
-                };
+            {
+                ConnectionString = _connectionString,
+                ContextClassName = "AttributesContext",
+                ProjectPath = TestProjectDir,
+                ProjectRootNamespace = TestNamespace,
+                OutputPath = TestSubDir,
+                TableSelectionSet = Filter,
+            };
 
             var filePaths = Generator.GenerateAsync(configuration).GetAwaiter().GetResult();
 
             var actualFileSet = new FileSet(InMemoryFiles, Path.Combine(TestProjectDir, TestSubDir))
-                {
-                    Files = filePaths.Select(Path.GetFileName).ToList()
-                };
+            {
+                Files = Enumerable.Repeat(filePaths.ContextFile, 1).Concat(filePaths.EntityTypeFiles).Select(Path.GetFileName).ToList()
+            };
 
             var expectedFileSet = new FileSet(new FileSystemFileService(),
                 Path.Combine("ReverseEngineering", "ExpectedResults", "E2E_UseAttributesInsteadOfFluentApi"),
                 contents => contents.Replace("namespace " + TestNamespace, "namespace " + TestNamespace + "." + TestSubDir))
-                {
-                    Files = _expectedFiles
-                };
-
-            AssertLog(new LoggerMessages
-                {
-                    Warn =
-                        {
-                            @"For column [dbo][AllDataTypes][hierarchyidColumn]. Could not find type mapping for SQL Server type hierarchyid. Skipping column.",
-                            @"For column [dbo][AllDataTypes][sql_variantColumn]. Could not find type mapping for SQL Server type sql_variant. Skipping column.",
-                            @"For column [dbo][AllDataTypes][xmlColumn]. Could not find type mapping for SQL Server type xml. Skipping column.",
-                            @"For column [dbo][AllDataTypes][geographyColumn]. Could not find type mapping for SQL Server type geography. Skipping column.",
-                            @"For column [dbo][AllDataTypes][geometryColumn]. Could not find type mapping for SQL Server type geometry. Skipping column.",
-                            @"For column [dbo][PropertyConfiguration][PropertyConfigurationID]. This column is set up as an Identity column, but the SQL Server data type is tinyint. This will be mapped to CLR type byte which does not allow the SqlServerIdentityStrategy.IdentityColumn setting. Generating a matching Property but ignoring the Identity setting.",
-                            @"For column [dbo][TableWithUnmappablePrimaryKeyColumn][TableWithUnmappablePrimaryKeyColumnID]. Could not find type mapping for SQL Server type hierarchyid. Skipping column.",
-                            @"Unable to identify any primary key columns in the underlying SQL Server table [dbo].[TableWithUnmappablePrimaryKeyColumn]."
-                        }
-                });
-            AssertEqualFileContents(expectedFileSet, actualFileSet);
-            AssertCompile(actualFileSet);
-        }
-
-        [Fact]
-        public void E2ETest_AllFluentApi()
-        {
-            var configuration = new ReverseEngineeringConfiguration
             {
-                ConnectionString = _connectionString,
-                CustomTemplatePath = "AllFluentApiTemplatesDir",
-                ProjectPath = TestProjectDir,
-                ProjectRootNamespace = TestNamespace,
-                RelativeOutputPath = null // not used for this test
-            };
-
-            // use templates where the flag to use attributes instead of fluent API has been turned off
-            var dbContextTemplate = MetadataModelProvider.DbContextTemplate
-                .Replace("useAttributesOverFluentApi = true", "useAttributesOverFluentApi = false");
-            var entityTypeTemplate = MetadataModelProvider.EntityTypeTemplate
-                .Replace("useAttributesOverFluentApi = true", "useAttributesOverFluentApi = false");
-            InMemoryFiles.OutputFile("AllFluentApiTemplatesDir", ProviderDbContextTemplateName, dbContextTemplate);
-            InMemoryFiles.OutputFile("AllFluentApiTemplatesDir", ProviderEntityTypeTemplateName, entityTypeTemplate);
-
-            var filePaths = Generator.GenerateAsync(configuration).GetAwaiter().GetResult();
-
-            var actualFileSet = new FileSet(InMemoryFiles, TestProjectDir)
-            {
-                Files = filePaths.Select(Path.GetFileName).ToList()
-            };
-
-            var expectedFileSet = new FileSet(new FileSystemFileService(),
-                Path.Combine("ReverseEngineering", "ExpectedResults", "E2E_AllFluentApi"))
-            {
-                Files = _expectedFiles
+                Files = (new List<string> { "AttributesContext.expected"})
+                    .Concat(_expectedEntityTypeFiles).ToList()
             };
 
             AssertLog(new LoggerMessages
@@ -159,14 +128,9 @@ namespace Microsoft.Data.Entity.SqlServer.Design.FunctionalTests.ReverseEngineer
                             @"For column [dbo][AllDataTypes][xmlColumn]. Could not find type mapping for SQL Server type xml. Skipping column.",
                             @"For column [dbo][AllDataTypes][geographyColumn]. Could not find type mapping for SQL Server type geography. Skipping column.",
                             @"For column [dbo][AllDataTypes][geometryColumn]. Could not find type mapping for SQL Server type geometry. Skipping column.",
-                            @"For column [dbo][PropertyConfiguration][PropertyConfigurationID]. This column is set up as an Identity column, but the SQL Server data type is tinyint. This will be mapped to CLR type byte which does not allow the SqlServerIdentityStrategy.IdentityColumn setting. Generating a matching Property but ignoring the Identity setting.",
+                            @"For column [dbo][PropertyConfiguration][PropertyConfigurationID]. This column is set up as an Identity column, but the SQL Server data type is tinyint. This will be mapped to CLR type byte which does not allow the SqlServerValueGenerationStrategy.IdentityColumn setting. Generating a matching Property but ignoring the Identity setting.",
                             @"For column [dbo][TableWithUnmappablePrimaryKeyColumn][TableWithUnmappablePrimaryKeyColumnID]. Could not find type mapping for SQL Server type hierarchyid. Skipping column.",
                             @"Unable to identify any primary key columns in the underlying SQL Server table [dbo].[TableWithUnmappablePrimaryKeyColumn]."
-                        },
-                Info =
-                        {
-                            "Using custom template " + Path.Combine("AllFluentApiTemplatesDir", ProviderDbContextTemplateName),
-                            "Using custom template " + Path.Combine("AllFluentApiTemplatesDir", ProviderEntityTypeTemplateName)
                         }
             });
             AssertEqualFileContents(expectedFileSet, actualFileSet);
@@ -174,68 +138,48 @@ namespace Microsoft.Data.Entity.SqlServer.Design.FunctionalTests.ReverseEngineer
         }
 
         [Fact]
-        public void Code_generation_will_use_customized_templates_if_present()
+        public void E2ETest_AllFluentApi()
         {
             var configuration = new ReverseEngineeringConfiguration
-                {
-                    ConnectionString = _connectionString,
-                    CustomTemplatePath = CustomizedTemplateDir,
-                    ProjectPath = TestProjectDir,
-                    ProjectRootNamespace = TestNamespace,
-                    RelativeOutputPath = null // tests outputting to top-level directory
-                };
-            InMemoryFiles.OutputFile(CustomizedTemplateDir, ProviderDbContextTemplateName, "DbContext template");
-            InMemoryFiles.OutputFile(CustomizedTemplateDir, ProviderEntityTypeTemplateName, "EntityType template");
+            {
+                ConnectionString = _connectionString,
+                ProjectPath = TestProjectDir,
+                ProjectRootNamespace = TestNamespace,
+                OutputPath = null, // not used for this test
+                UseFluentApiOnly = true,
+                TableSelectionSet = Filter,
+            };
 
             var filePaths = Generator.GenerateAsync(configuration).GetAwaiter().GetResult();
 
+            var actualFileSet = new FileSet(InMemoryFiles, TestProjectDir)
+            {
+                Files = Enumerable.Repeat(filePaths.ContextFile, 1).Concat(filePaths.EntityTypeFiles).Select(Path.GetFileName).ToList()
+            };
+
+            var expectedFileSet = new FileSet(new FileSystemFileService(),
+                Path.Combine("ReverseEngineering", "ExpectedResults", "E2E_AllFluentApi"))
+            {
+                Files = (new List<string> { "SqlServerReverseEngineerTestE2EContext.expected" })
+                    .Concat(_expectedEntityTypeFiles).ToList()
+            };
+
             AssertLog(new LoggerMessages
-                {
-                    Warn =
+            {
+                Warn =
                         {
                             @"For column [dbo][AllDataTypes][hierarchyidColumn]. Could not find type mapping for SQL Server type hierarchyid. Skipping column.",
                             @"For column [dbo][AllDataTypes][sql_variantColumn]. Could not find type mapping for SQL Server type sql_variant. Skipping column.",
                             @"For column [dbo][AllDataTypes][xmlColumn]. Could not find type mapping for SQL Server type xml. Skipping column.",
                             @"For column [dbo][AllDataTypes][geographyColumn]. Could not find type mapping for SQL Server type geography. Skipping column.",
                             @"For column [dbo][AllDataTypes][geometryColumn]. Could not find type mapping for SQL Server type geometry. Skipping column.",
-                            @"For column [dbo][PropertyConfiguration][PropertyConfigurationID]. This column is set up as an Identity column, but the SQL Server data type is tinyint. This will be mapped to CLR type byte which does not allow the SqlServerIdentityStrategy.IdentityColumn setting. Generating a matching Property but ignoring the Identity setting.",
+                            @"For column [dbo][PropertyConfiguration][PropertyConfigurationID]. This column is set up as an Identity column, but the SQL Server data type is tinyint. This will be mapped to CLR type byte which does not allow the SqlServerValueGenerationStrategy.IdentityColumn setting. Generating a matching Property but ignoring the Identity setting.",
                             @"For column [dbo][TableWithUnmappablePrimaryKeyColumn][TableWithUnmappablePrimaryKeyColumnID]. Could not find type mapping for SQL Server type hierarchyid. Skipping column.",
                             @"Unable to identify any primary key columns in the underlying SQL Server table [dbo].[TableWithUnmappablePrimaryKeyColumn]."
-                        },
-                    Info =
-                        {
-                            "Using custom template " + Path.Combine(CustomizedTemplateDir, ProviderDbContextTemplateName),
-                            "Using custom template " + Path.Combine(CustomizedTemplateDir, ProviderEntityTypeTemplateName)
                         }
-                });
-
-            foreach (var fileName in filePaths.Select(Path.GetFileName))
-            {
-                var fileContents = InMemoryFiles.RetrieveFileContents(TestProjectDir, fileName);
-                var contents = "SqlServerReverseEngineerTestE2EContext.cs" == fileName ? "DbContext template" : "EntityType template";
-                Assert.Contains(fileName.Replace(".cs", ".expected"), _expectedFiles);
-                Assert.Equal(contents, fileContents);
-            }
-        }
-
-        [Fact]
-        public virtual void Can_output_templates_to_be_customized()
-        {
-            var filePaths = Generator.Customize(TestProjectDir);
-
-            AssertLog(new LoggerMessages());
-
-            Assert.Collection(filePaths,
-                file1 => Assert.Equal(file1, Path.Combine(TestProjectDir, ProviderDbContextTemplateName)),
-                file2 => Assert.Equal(file2, Path.Combine(TestProjectDir, ProviderEntityTypeTemplateName)));
-
-            var dbContextTemplateContents = InMemoryFiles.RetrieveFileContents(
-                TestProjectDir, ProviderDbContextTemplateName);
-            Assert.Equal(MetadataModelProvider.DbContextTemplate, dbContextTemplateContents);
-
-            var entityTypeTemplateContents = InMemoryFiles.RetrieveFileContents(
-                TestProjectDir, ProviderEntityTypeTemplateName);
-            Assert.Equal(MetadataModelProvider.EntityTypeTemplate, entityTypeTemplateContents);
+            });
+            AssertEqualFileContents(expectedFileSet, actualFileSet);
+            AssertCompile(actualFileSet);
         }
     }
 }

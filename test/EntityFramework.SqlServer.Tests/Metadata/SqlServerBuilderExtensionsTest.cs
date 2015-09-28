@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Metadata.Builders;
-using Microsoft.Data.Entity.SqlServer.Metadata;
+using Microsoft.Data.Entity.Metadata.Internal;
 using Microsoft.Data.Entity.Tests;
 using Xunit;
 
@@ -133,7 +133,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
 
             modelBuilder
                 .Entity<Customer>()
-                .Key(e => e.Id)
+                .HasKey(e => e.Id)
                 .Name("KeyLimePie")
                 .SqlServerKeyName("LemonSupreme");
 
@@ -149,7 +149,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var modelBuilder = CreateConventionModelBuilder();
 
             modelBuilder
-                .Entity<Customer>().Collection(e => e.Orders).InverseReference(e => e.Customer)
+                .Entity<Customer>().HasMany(e => e.Orders).WithOne(e => e.Customer)
                 .ConstraintName("LemonSupreme")
                 .SqlServerConstraintName("ChocolateLimes");
 
@@ -159,7 +159,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             Assert.Equal("ChocolateLimes", foreignKey.SqlServer().Name);
 
             modelBuilder
-                .Entity<Customer>().Collection(e => e.Orders).InverseReference(e => e.Customer)
+                .Entity<Customer>().HasMany(e => e.Orders).WithOne(e => e.Customer)
                 .SqlServerConstraintName(null);
 
             Assert.Equal("LemonSupreme", foreignKey.Relational().Name);
@@ -172,7 +172,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var modelBuilder = CreateConventionModelBuilder();
 
             modelBuilder
-                .Entity<Customer>().Collection(e => e.Orders).InverseReference(e => e.Customer)
+                .Entity<Customer>().HasMany(e => e.Orders).WithOne(e => e.Customer)
                 .ForeignKey(e => e.CustomerId)
                 .ConstraintName("LemonSupreme")
                 .SqlServerConstraintName("ChocolateLimes");
@@ -189,7 +189,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var modelBuilder = CreateConventionModelBuilder();
 
             modelBuilder
-                .Entity<Order>().Reference(e => e.Customer).InverseCollection(e => e.Orders)
+                .Entity<Order>().HasOne(e => e.Customer).WithMany(e => e.Orders)
                 .ConstraintName("LemonSupreme")
                 .SqlServerConstraintName("ChocolateLimes");
 
@@ -199,7 +199,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             Assert.Equal("ChocolateLimes", foreignKey.SqlServer().Name);
 
             modelBuilder
-                .Entity<Order>().Reference(e => e.Customer).InverseCollection(e => e.Orders)
+                .Entity<Order>().HasOne(e => e.Customer).WithMany(e => e.Orders)
                 .SqlServerConstraintName(null);
 
             Assert.Equal("LemonSupreme", foreignKey.Relational().Name);
@@ -212,7 +212,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var modelBuilder = CreateConventionModelBuilder();
 
             modelBuilder
-                .Entity<Order>().Reference(e => e.Customer).InverseCollection(e => e.Orders)
+                .Entity<Order>().HasOne(e => e.Customer).WithMany(e => e.Orders)
                 .ForeignKey(e => e.CustomerId)
                 .ConstraintName("LemonSupreme")
                 .SqlServerConstraintName("ChocolateLimes");
@@ -229,7 +229,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var modelBuilder = CreateConventionModelBuilder();
 
             modelBuilder
-                .Entity<Order>().Reference(e => e.Details).InverseReference(e => e.Order)
+                .Entity<Order>().HasOne(e => e.Details).WithOne(e => e.Order)
                 .PrincipalKey<Order>(e => e.OrderId)
                 .ConstraintName("LemonSupreme")
                 .SqlServerConstraintName("ChocolateLimes");
@@ -240,7 +240,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             Assert.Equal("ChocolateLimes", foreignKey.SqlServer().Name);
 
             modelBuilder
-                .Entity<Order>().Reference(e => e.Details).InverseReference(e => e.Order)
+                .Entity<Order>().HasOne(e => e.Details).WithOne(e => e.Order)
                 .SqlServerConstraintName(null);
 
             Assert.Equal("LemonSupreme", foreignKey.Relational().Name);
@@ -253,7 +253,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var modelBuilder = CreateConventionModelBuilder();
 
             modelBuilder
-                .Entity<Order>().Reference(e => e.Details).InverseReference(e => e.Order)
+                .Entity<Order>().HasOne(e => e.Details).WithOne(e => e.Order)
                 .ForeignKey<OrderDetails>(e => e.Id)
                 .ConstraintName("LemonSupreme")
                 .SqlServerConstraintName("ChocolateLimes");
@@ -375,7 +375,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
 
             modelBuilder
                 .Entity<Customer>()
-                .Key(e => e.Id)
+                .HasKey(e => e.Id)
                 .SqlServerClustered();
 
             var key = modelBuilder.Model.GetEntityType(typeof(Customer)).GetPrimaryKey();
@@ -393,34 +393,12 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var relationalExtensions = modelBuilder.Model.Relational();
             var sqlServerExtensions = modelBuilder.Model.SqlServer();
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, sqlServerExtensions.IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, sqlServerExtensions.ValueGenerationStrategy);
             Assert.Equal(SqlServerAnnotationNames.DefaultHiLoSequenceName, sqlServerExtensions.HiLoSequenceName);
             Assert.Null(sqlServerExtensions.HiLoSequenceSchema);
 
             Assert.Null(relationalExtensions.FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
             Assert.NotNull(sqlServerExtensions.FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
-
-            Assert.Null(sqlServerExtensions.HiLoSequencePoolSize);
-        }
-
-        [Fact]
-        public void Can_set_sequences_with_pool_size_for_model()
-        {
-            var modelBuilder = CreateConventionModelBuilder();
-
-            modelBuilder.UseSqlServerSequenceHiLo(7);
-
-            var relationalExtensions = modelBuilder.Model.Relational();
-            var sqlServerExtensions = modelBuilder.Model.SqlServer();
-
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, sqlServerExtensions.IdentityStrategy);
-            Assert.Equal(SqlServerAnnotationNames.DefaultHiLoSequenceName, sqlServerExtensions.HiLoSequenceName);
-            Assert.Null(sqlServerExtensions.HiLoSequenceSchema);
-
-            Assert.Null(relationalExtensions.FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
-            Assert.NotNull(sqlServerExtensions.FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
-
-            Assert.Equal(7, sqlServerExtensions.HiLoSequencePoolSize);
         }
 
         [Fact]
@@ -433,38 +411,9 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var relationalExtensions = modelBuilder.Model.Relational();
             var sqlServerExtensions = modelBuilder.Model.SqlServer();
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, sqlServerExtensions.IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, sqlServerExtensions.ValueGenerationStrategy);
             Assert.Equal("Snook", sqlServerExtensions.HiLoSequenceName);
             Assert.Null(sqlServerExtensions.HiLoSequenceSchema);
-            Assert.Null(sqlServerExtensions.HiLoSequencePoolSize);
-
-            Assert.Null(relationalExtensions.FindSequence("Snook"));
-
-            var sequence = sqlServerExtensions.FindSequence("Snook");
-
-            Assert.Equal("Snook", sequence.Name);
-            Assert.Null(sequence.Schema);
-            Assert.Equal(10, sequence.IncrementBy);
-            Assert.Equal(1, sequence.StartValue);
-            Assert.Null(sequence.MinValue);
-            Assert.Null(sequence.MaxValue);
-            Assert.Same(typeof(long), sequence.ClrType);
-        }
-
-        [Fact]
-        public void Can_set_sequences_with_name_and_pool_size_for_model()
-        {
-            var modelBuilder = CreateConventionModelBuilder();
-
-            modelBuilder.UseSqlServerSequenceHiLo(7, "Snook");
-
-            var relationalExtensions = modelBuilder.Model.Relational();
-            var sqlServerExtensions = modelBuilder.Model.SqlServer();
-
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, sqlServerExtensions.IdentityStrategy);
-            Assert.Equal("Snook", sqlServerExtensions.HiLoSequenceName);
-            Assert.Null(sqlServerExtensions.HiLoSequenceSchema);
-            Assert.Equal(7, sqlServerExtensions.HiLoSequencePoolSize);
 
             Assert.Null(relationalExtensions.FindSequence("Snook"));
 
@@ -489,7 +438,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var relationalExtensions = modelBuilder.Model.Relational();
             var sqlServerExtensions = modelBuilder.Model.SqlServer();
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, sqlServerExtensions.IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, sqlServerExtensions.ValueGenerationStrategy);
             Assert.Equal("Snook", sqlServerExtensions.HiLoSequenceName);
             Assert.Equal("Tasty", sqlServerExtensions.HiLoSequenceSchema);
 
@@ -522,7 +471,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var relationalExtensions = modelBuilder.Model.Relational();
             var sqlServerExtensions = modelBuilder.Model.SqlServer();
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, sqlServerExtensions.IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, sqlServerExtensions.ValueGenerationStrategy);
             Assert.Equal("Snook", sqlServerExtensions.HiLoSequenceName);
             Assert.Equal("Tasty", sqlServerExtensions.HiLoSequenceSchema);
 
@@ -547,7 +496,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var relationalExtensions = modelBuilder.Model.Relational();
             var sqlServerExtensions = modelBuilder.Model.SqlServer();
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, sqlServerExtensions.IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, sqlServerExtensions.ValueGenerationStrategy);
             Assert.Equal("Snook", sqlServerExtensions.HiLoSequenceName);
             Assert.Equal("Tasty", sqlServerExtensions.HiLoSequenceSchema);
 
@@ -576,10 +525,9 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var relationalExtensions = modelBuilder.Model.Relational();
             var sqlServerExtensions = modelBuilder.Model.SqlServer();
 
-            Assert.Equal(SqlServerIdentityStrategy.IdentityColumn, sqlServerExtensions.IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.IdentityColumn, sqlServerExtensions.ValueGenerationStrategy);
             Assert.Null(sqlServerExtensions.HiLoSequenceName);
             Assert.Null(sqlServerExtensions.HiLoSequenceSchema);
-            Assert.Null(sqlServerExtensions.HiLoSequencePoolSize);
 
             Assert.Null(relationalExtensions.FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
             Assert.Null(sqlServerExtensions.FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
@@ -598,37 +546,12 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var model = modelBuilder.Model;
             var property = model.GetEntityType(typeof(Customer)).GetProperty("Id");
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, property.SqlServer().IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, property.SqlServer().ValueGenerationStrategy);
             Assert.Equal(ValueGenerated.OnAdd, property.ValueGenerated);
             Assert.Equal(SqlServerAnnotationNames.DefaultHiLoSequenceName, property.SqlServer().HiLoSequenceName);
 
             Assert.Null(model.Relational().FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
             Assert.NotNull(model.SqlServer().FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
-
-            Assert.Null(property.SqlServer().HiLoSequencePoolSize);
-        }
-
-        [Fact]
-        public void Can_set_sequence_with_pool_size_for_property()
-        {
-            var modelBuilder = CreateConventionModelBuilder();
-
-            modelBuilder
-                .Entity<Customer>()
-                .Property(e => e.Id)
-                .UseSqlServerSequenceHiLo(3);
-
-            var model = modelBuilder.Model;
-            var property = model.GetEntityType(typeof(Customer)).GetProperty("Id");
-
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, property.SqlServer().IdentityStrategy);
-            Assert.Equal(ValueGenerated.OnAdd, property.ValueGenerated);
-            Assert.Equal(SqlServerAnnotationNames.DefaultHiLoSequenceName, property.SqlServer().HiLoSequenceName);
-
-            Assert.Null(model.Relational().FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
-            Assert.NotNull(model.SqlServer().FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
-
-            Assert.Equal(3, property.SqlServer().HiLoSequencePoolSize);
         }
 
         [Fact]
@@ -644,47 +567,15 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var model = modelBuilder.Model;
             var property = model.GetEntityType(typeof(Customer)).GetProperty("Id");
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, property.SqlServer().IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, property.SqlServer().ValueGenerationStrategy);
             Assert.Equal(ValueGenerated.OnAdd, property.ValueGenerated);
             Assert.Equal("Snook", property.SqlServer().HiLoSequenceName);
             Assert.Null(property.SqlServer().HiLoSequenceSchema);
-            Assert.Null(property.SqlServer().HiLoSequencePoolSize);
 
             Assert.Null(model.Relational().FindSequence("Snook"));
 
             var sequence = model.SqlServer().FindSequence("Snook");
 
-            Assert.Equal("Snook", sequence.Name);
-            Assert.Null(sequence.Schema);
-            Assert.Equal(10, sequence.IncrementBy);
-            Assert.Equal(1, sequence.StartValue);
-            Assert.Null(sequence.MinValue);
-            Assert.Null(sequence.MaxValue);
-            Assert.Same(typeof(long), sequence.ClrType);
-        }
-
-        [Fact]
-        public void Can_set_sequences_with_name_and_pool_size_for_property()
-        {
-            var modelBuilder = CreateConventionModelBuilder();
-
-            modelBuilder
-                .Entity<Customer>()
-                .Property(e => e.Id)
-                .UseSqlServerSequenceHiLo(3, "Snook");
-
-            var model = modelBuilder.Model;
-            var property = model.GetEntityType(typeof(Customer)).GetProperty("Id");
-
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, property.SqlServer().IdentityStrategy);
-            Assert.Equal(ValueGenerated.OnAdd, property.ValueGenerated);
-            Assert.Equal("Snook", property.SqlServer().HiLoSequenceName);
-            Assert.Null(property.SqlServer().HiLoSequenceSchema);
-            Assert.Equal(3, property.SqlServer().HiLoSequencePoolSize);
-
-            Assert.Null(model.Relational().FindSequence("Snook"));
-
-            var sequence = model.SqlServer().FindSequence("Snook");
             Assert.Equal("Snook", sequence.Name);
             Assert.Null(sequence.Schema);
             Assert.Equal(10, sequence.IncrementBy);
@@ -707,7 +598,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var model = modelBuilder.Model;
             var property = model.GetEntityType(typeof(Customer)).GetProperty("Id");
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, property.SqlServer().IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, property.SqlServer().ValueGenerationStrategy);
             Assert.Equal(ValueGenerated.OnAdd, property.ValueGenerated);
             Assert.Equal("Snook", property.SqlServer().HiLoSequenceName);
             Assert.Equal("Tasty", property.SqlServer().HiLoSequenceSchema);
@@ -744,7 +635,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var model = modelBuilder.Model;
             var property = model.GetEntityType(typeof(Customer)).GetProperty("Id");
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, property.SqlServer().IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, property.SqlServer().ValueGenerationStrategy);
             Assert.Equal(ValueGenerated.OnAdd, property.ValueGenerated);
             Assert.Equal("Snook", property.SqlServer().HiLoSequenceName);
             Assert.Equal("Tasty", property.SqlServer().HiLoSequenceSchema);
@@ -767,7 +658,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var model = modelBuilder.Model;
             var property = model.GetEntityType(typeof(Customer)).GetProperty("Id");
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, property.SqlServer().IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, property.SqlServer().ValueGenerationStrategy);
             Assert.Equal(ValueGenerated.OnAdd, property.ValueGenerated);
             Assert.Equal("Snook", property.SqlServer().HiLoSequenceName);
             Assert.Equal("Tasty", property.SqlServer().HiLoSequenceSchema);
@@ -796,7 +687,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var model = modelBuilder.Model;
             var property = model.GetEntityType(typeof(Customer)).GetProperty("Id");
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, property.SqlServer().IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, property.SqlServer().ValueGenerationStrategy);
             Assert.Equal(ValueGenerated.OnAdd, property.ValueGenerated);
             Assert.Equal("Snook", property.SqlServer().HiLoSequenceName);
             Assert.Equal("Tasty", property.SqlServer().HiLoSequenceSchema);
@@ -825,7 +716,7 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var model = modelBuilder.Model;
             var property = model.GetEntityType(typeof(Customer)).GetProperty("Id");
 
-            Assert.Equal(SqlServerIdentityStrategy.SequenceHiLo, property.SqlServer().IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.SequenceHiLo, property.SqlServer().ValueGenerationStrategy);
             Assert.Equal(ValueGenerated.OnAdd, property.ValueGenerated);
             Assert.Equal("Snook", property.SqlServer().HiLoSequenceName);
             Assert.Equal("Tasty", property.SqlServer().HiLoSequenceSchema);
@@ -847,10 +738,9 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var model = modelBuilder.Model;
             var property = model.GetEntityType(typeof(Customer)).GetProperty("Id");
 
-            Assert.Equal(SqlServerIdentityStrategy.IdentityColumn, property.SqlServer().IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.IdentityColumn, property.SqlServer().ValueGenerationStrategy);
             Assert.Equal(ValueGenerated.OnAdd, property.ValueGenerated);
             Assert.Null(property.SqlServer().HiLoSequenceName);
-            Assert.Null(property.SqlServer().HiLoSequencePoolSize);
 
             Assert.Null(model.Relational().FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
             Assert.Null(model.SqlServer().FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
@@ -869,10 +759,9 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var model = modelBuilder.Model;
             var property = model.GetEntityType(typeof(Customer)).GetProperty("Id");
 
-            Assert.Equal(SqlServerIdentityStrategy.IdentityColumn, property.SqlServer().IdentityStrategy);
+            Assert.Equal(SqlServerValueGenerationStrategy.IdentityColumn, property.SqlServer().ValueGenerationStrategy);
             Assert.Equal(ValueGenerated.OnAdd, property.ValueGenerated);
             Assert.Null(property.SqlServer().HiLoSequenceName);
-            Assert.Null(property.SqlServer().HiLoSequencePoolSize);
 
             Assert.Null(model.Relational().FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
             Assert.Null(model.SqlServer().FindSequence(SqlServerAnnotationNames.DefaultHiLoSequenceName));
@@ -1234,22 +1123,22 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
 
             AssertIsGeneric(
                 modelBuilder
-                    .Entity<Customer>().Collection(e => e.Orders)
-                    .InverseReference(e => e.Customer)
+                    .Entity<Customer>().HasMany(e => e.Orders)
+                    .WithOne(e => e.Customer)
                     .SqlServerConstraintName("Will"));
 
             AssertIsGeneric(
                 modelBuilder
                     .Entity<Order>()
-                    .Reference(e => e.Customer)
-                    .InverseCollection(e => e.Orders)
+                    .HasOne(e => e.Customer)
+                    .WithMany(e => e.Orders)
                     .SqlServerConstraintName("Jay"));
 
             AssertIsGeneric(
                 modelBuilder
                     .Entity<Order>()
-                    .Reference(e => e.Details)
-                    .InverseReference(e => e.Order)
+                    .HasOne(e => e.Details)
+                    .WithOne(e => e.Order)
                     .SqlServerConstraintName("Simon"));
         }
 
@@ -1259,20 +1148,20 @@ namespace Microsoft.Data.Entity.SqlServer.Tests.Metadata
             var modelBuilder = CreateConventionModelBuilder();
 
             modelBuilder
-                .Entity<Customer>().Collection(typeof(Order), "Orders")
-                .InverseReference("Customer")
+                .Entity<Customer>().HasMany(typeof(Order), "Orders")
+                .WithOne("Customer")
                 .SqlServerConstraintName("Will");
 
             modelBuilder
                 .Entity<Order>()
-                .Reference(e => e.Customer)
-                .InverseCollection(e => e.Orders)
+                .HasOne(e => e.Customer)
+                .WithMany(e => e.Orders)
                 .SqlServerConstraintName("Jay");
 
             modelBuilder
                 .Entity<Order>()
-                .Reference(e => e.Details)
-                .InverseReference(e => e.Order)
+                .HasOne(e => e.Details)
+                .WithOne(e => e.Order)
                 .SqlServerConstraintName("Simon");
         }
 

@@ -7,12 +7,13 @@ using System.Data.Common;
 using Microsoft.Data.Entity.FunctionalTests;
 using Microsoft.Data.Entity.Infrastructure;
 using Microsoft.Data.Entity.Metadata;
-using Microsoft.Data.Entity.Query;
 using Microsoft.Data.Entity.Query.Expressions;
+using Microsoft.Data.Entity.Query.Internal;
 using Microsoft.Data.Entity.Query.Sql;
-using Microsoft.Data.Entity.Sqlite.Update;
 using Microsoft.Data.Entity.Storage;
+using Microsoft.Data.Entity.Storage.Internal;
 using Microsoft.Data.Entity.Update;
+using Microsoft.Data.Entity.Update.Internal;
 using Microsoft.Data.Sqlite;
 using Microsoft.Framework.DependencyInjection;
 using Xunit;
@@ -44,13 +45,13 @@ namespace Microsoft.Data.Entity.Sqlite.FunctionalTests
             public virtual void CreateDatabase()
             {
                 _store = SqliteTestStore.GetOrCreateShared(DatabaseName, () =>
-                {
-                    using (var context = new ChipsContext(ServiceProvider))
                     {
-                        context.Database.EnsureDeleted();
-                        context.Database.EnsureCreated();
-                    }
-                });
+                        using (var context = new ChipsContext(ServiceProvider))
+                        {
+                            context.Database.EnsureDeleted();
+                            context.Database.EnsureCreated();
+                        }
+                    });
             }
 
             public void Dispose()
@@ -122,9 +123,10 @@ namespace Microsoft.Data.Entity.Sqlite.FunctionalTests
         private CommandBuilder SetupCommandBuilder()
             => new CommandBuilder(
                 new UntypedRelationalValueBufferFactoryFactory(),
-                new SqliteTypeMapper(),
                 new SelectExpression(
                     new SqliteQuerySqlGeneratorFactory(
+                        new RelationalCommandBuilderFactory(new SqliteTypeMapper()),
+                        new RelationalSqlGenerator(),
                         new ParameterNameGeneratorFactory()))
                     .CreateGenerator);
 
@@ -185,7 +187,9 @@ namespace Microsoft.Data.Entity.Sqlite.FunctionalTests
             }
 
             public TestSqliteModificationCommandBatch(IUpdateSqlGenerator sqlGenerator)
-                : base(sqlGenerator)
+                : base(
+                      new RelationalCommandBuilderFactory(new SqliteTypeMapper()),
+                      sqlGenerator)
             {
             }
         }
@@ -194,13 +198,15 @@ namespace Microsoft.Data.Entity.Sqlite.FunctionalTests
         {
             public TestSqliteModificationCommandBatchFactory(
                 IUpdateSqlGenerator sqlGenerator)
-                : base(sqlGenerator)
+                : base(
+                      new RelationalCommandBuilderFactory(new SqliteTypeMapper()),
+                      sqlGenerator)
             {
             }
 
             public override ModificationCommandBatch Create(
                 IDbContextOptions options,
-                IRelationalMetadataExtensionProvider metadataExtensionProvider) => new TestSqliteModificationCommandBatch(UpdateSqlGenerator);
+                IRelationalAnnotationProvider annotationProvider) => new TestSqliteModificationCommandBatch(UpdateSqlGenerator);
         }
 
         private class ChipsContext : DbContext

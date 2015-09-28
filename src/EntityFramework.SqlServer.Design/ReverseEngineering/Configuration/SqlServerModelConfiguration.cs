@@ -8,19 +8,16 @@ using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Metadata.Builders;
 using Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Configuration;
 using Microsoft.Data.Entity.Relational.Design.Utilities;
-using Microsoft.Data.Entity.Relational.Design.Templating;
 using Microsoft.Data.Entity.Utilities;
 
 namespace Microsoft.Data.Entity.SqlServer.Design.ReverseEngineering.Configuration
 {
     public class SqlServerModelConfiguration : ModelConfiguration
     {
-        private const string _dbContextSuffix = "Context";
-
         public SqlServerModelConfiguration(
             [NotNull] IModel model,
             [NotNull] CustomConfiguration customConfiguration,
-            [NotNull] IRelationalMetadataExtensionProvider extensionsProvider,
+            [NotNull] IRelationalAnnotationProvider extensionsProvider,
             [NotNull] CSharpUtilities cSharpUtilities,
             [NotNull] ModelUtilities modelUtilities)
             : base(model, customConfiguration, extensionsProvider, cSharpUtilities, modelUtilities)
@@ -32,16 +29,11 @@ namespace Microsoft.Data.Entity.SqlServer.Design.ReverseEngineering.Configuratio
 
         public override string ClassName()
         {
-            if (CustomConfiguration.ContextClassName != null)
-            {
-                return CustomConfiguration.ContextClassName;
-            }
-
             var builder = new SqlConnectionStringBuilder(CustomConfiguration.ConnectionString);
             if (builder.InitialCatalog != null)
             {
                 return CSharpUtilities.GenerateCSharpIdentifier(
-                    builder.InitialCatalog + _dbContextSuffix, null);
+                    builder.InitialCatalog + DbContextSuffix, null);
             }
 
             return base.ClassName();
@@ -56,8 +48,8 @@ namespace Microsoft.Data.Entity.SqlServer.Design.ReverseEngineering.Configuratio
             // KeyConvention assumes ValueGeneratedOnAdd(). If the underlying column does
             // not have Identity set then we need to set to ValueGeneratedNever() to
             // override this behavior.
-            if (propertyConfiguration.Property.SqlServer().IdentityStrategy == null
-                && _keyConvention.ValueGeneratedOnAddProperty(
+            if (propertyConfiguration.Property.SqlServer().ValueGenerationStrategy == null
+                && _keyConvention.FindValueGeneratedOnAddProperty(
                     new List<Property> { (Property)propertyConfiguration.Property },
                     (EntityType)propertyConfiguration.EntityConfiguration.EntityType) != null)
             {

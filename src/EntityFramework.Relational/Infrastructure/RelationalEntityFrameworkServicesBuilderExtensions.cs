@@ -9,10 +9,12 @@ using Microsoft.Data.Entity.Migrations;
 using Microsoft.Data.Entity.Migrations.Internal;
 using Microsoft.Data.Entity.Query;
 using Microsoft.Data.Entity.Query.Expressions;
+using Microsoft.Data.Entity.Query.ExpressionTranslators;
 using Microsoft.Data.Entity.Query.ExpressionVisitors;
 using Microsoft.Data.Entity.Query.Internal;
 using Microsoft.Data.Entity.Storage;
 using Microsoft.Data.Entity.Update;
+using Microsoft.Data.Entity.Update.Internal;
 using Microsoft.Data.Entity.Utilities;
 using Microsoft.Data.Entity.ValueGeneration;
 using Microsoft.Framework.DependencyInjection;
@@ -45,12 +47,14 @@ namespace Microsoft.Data.Entity.Infrastructure
                 .AddScoped<MigrationsModelDiffer>()
                 .AddScoped<RelationalValueGeneratorSelector>()
                 .AddScoped<RelationalSqlExecutor>()
+                .AddScoped<IRelationalCommandBuilderFactory, RelationalCommandBuilderFactory>()
                 .AddScoped<SqlStatementExecutor>()
                 .AddScoped<CommandBatchPreparer>()
                 .AddScoped<IMigrationsModelDiffer, MigrationsModelDiffer>()
                 .AddScoped<MigrationsSqlGenerator>()
                 .AddScoped(p => GetProviderServices(p).ParameterNameGeneratorFactory)
                 .AddScoped(p => GetProviderServices(p).SqlStatementExecutor)
+                .AddScoped(p => GetProviderServices(p).SqlGenerator)
                 .AddScoped(p => GetProviderServices(p).CompositeMethodCallTranslator)
                 .AddScoped(p => GetProviderServices(p).CompositeMemberTranslator)
                 .AddScoped(p => GetProviderServices(p).CompositeExpressionFragmentTranslator)
@@ -65,15 +69,14 @@ namespace Microsoft.Data.Entity.Infrastructure
                 .AddScoped(p => GetProviderServices(p).ValueBufferFactoryFactory)
                 .AddScoped(p => GetProviderServices(p).RelationalDatabaseCreator)
                 .AddScoped(p => GetProviderServices(p).UpdateSqlGenerator)
-                .AddScoped(p => GetProviderServices(p).MetadataExtensionProvider)
+                .AddScoped(p => GetProviderServices(p).AnnotationProvider)
                 .AddQuery());
 
             return builder;
         }
 
         private static IServiceCollection AddQuery(this IServiceCollection serviceCollection)
-        {
-            return serviceCollection
+            => serviceCollection
                 .AddScoped<IMaterializerFactory, MaterializerFactory>()
                 .AddScoped<ICommandBuilderFactory, CommandBuilderFactory>()
                 .AddScoped<ICompositePredicateExpressionVisitorFactory, CompositePredicateExpressionVisitorFactory>()
@@ -90,8 +93,8 @@ namespace Microsoft.Data.Entity.Infrastructure
                 .AddScoped<RelationalQueryModelVisitorFactory>()
                 .AddScoped<RelationalProjectionExpressionVisitorFactory>()
                 .AddScoped<RelationalCompiledQueryCacheKeyGenerator>()
+                .AddScoped<RelationalCompositeExpressionFragmentTranslator>()
                 .AddScoped(p => GetProviderServices(p).SqlQueryGeneratorFactory);
-        }
 
         private static IRelationalDatabaseProviderServices GetProviderServices(IServiceProvider serviceProvider)
         {

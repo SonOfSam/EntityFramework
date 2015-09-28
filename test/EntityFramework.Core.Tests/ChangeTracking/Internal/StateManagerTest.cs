@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using JetBrains.Annotations;
 using Microsoft.Data.Entity.ChangeTracking.Internal;
 using Microsoft.Data.Entity.Internal;
 using Microsoft.Data.Entity.Metadata;
@@ -372,8 +371,8 @@ namespace Microsoft.Data.Entity.Tests.ChangeTracking.Internal
 
         internal class ChangeDetectorProxy : ChangeDetector
         {
-            public ChangeDetectorProxy([NotNull] IModel model)
-                : base(model)
+            public ChangeDetectorProxy(IEntityGraphAttacher attacher)
+                : base(attacher)
             {
             }
 
@@ -606,7 +605,7 @@ namespace Microsoft.Data.Entity.Tests.ChangeTracking.Internal
             var builder = new ModelBuilder(new CoreConventionSetBuilder().CreateConventionSet());
             var model = builder.Model;
 
-            builder.Entity<Product>().Reference<Category>().InverseReference()
+            builder.Entity<Product>().HasOne<Category>().WithOne()
                 .ForeignKey<Product>(e => e.DependentId)
                 .PrincipalKey<Category>(e => e.PrincipalId);
             builder.Entity<Category>();
@@ -615,7 +614,7 @@ namespace Microsoft.Data.Entity.Tests.ChangeTracking.Internal
                 {
                     eb.Property<int>("Id");
                     eb.Property<string>("Planet");
-                    eb.Key("Id");
+                    eb.HasKey("Id");
                 });
 
             return model;

@@ -20,9 +20,6 @@ namespace Microsoft.Data.Entity.Metadata
             return GetDerivedTypes(entityType.Model, entityType);
         }
 
-        public static IEnumerable<EntityType> GetDerivedTypes([NotNull] this EntityType entityType)
-            => ((IEntityType)entityType).GetDerivedTypes().Cast<EntityType>();
-
         public static IEnumerable<IEntityType> GetConcreteTypesInHierarchy([NotNull] this IEntityType entityType)
         {
             Check.NotNull(entityType, nameof(entityType));
@@ -53,11 +50,6 @@ namespace Microsoft.Data.Entity.Metadata
             Check.NotNull(entityType, nameof(entityType));
 
             return GetDirectlyDerivedTypes(entityType.Model, entityType);
-        }
-
-        public static IEnumerable<EntityType> GetDirectlyDerivedTypes([NotNull] this EntityType entityType)
-        {
-            return ((IEntityType)entityType).GetDirectlyDerivedTypes().Cast<EntityType>();
         }
 
         private static IEnumerable<IEntityType> GetDirectlyDerivedTypes(IModel model, IEntityType entityType)
@@ -165,16 +157,15 @@ namespace Microsoft.Data.Entity.Metadata
             return property;
         }
 
-        public static IEnumerable<IProperty> FindDerivedProperties([NotNull] this IEntityType entityType, [NotNull] IEnumerable<string> propertyNames)
+        public static IEnumerable<IProperty> FindDerivedProperties(
+            [NotNull] this IEntityType entityType,
+            [NotNull] string propertyName)
         {
             Check.NotNull(entityType, nameof(entityType));
-            Check.NotNull(propertyNames, nameof(propertyNames));
-
-            var searchProperties = new HashSet<string>(propertyNames);
-
-            return entityType.GetDerivedTypes()
-                .SelectMany(et => et.GetDeclaredProperties()
-                    .Where(property => searchProperties.Contains(property.Name)));
+            Check.NotNull(propertyName, nameof(propertyName));
+            
+            return entityType.GetDerivedTypes().SelectMany(et =>
+                et.GetDeclaredProperties().Where(property => propertyName.Equals(property.Name)));
         }
 
         [NotNull]
@@ -188,6 +179,7 @@ namespace Microsoft.Data.Entity.Metadata
             {
                 throw new ModelItemNotFoundException(Strings.NavigationNotFound(name, entityType.Name));
             }
+
             return navigation;
         }
 
@@ -196,6 +188,17 @@ namespace Microsoft.Data.Entity.Metadata
             Check.NotNull(entityType, nameof(entityType));
 
             return entityType.GetNavigations().Where(p => p.DeclaringEntityType == entityType);
+        }
+
+        public static IEnumerable<INavigation> FindDerivedNavigations(
+            [NotNull] this IEntityType entityType,
+            [NotNull] string navigationName)
+        {
+            Check.NotNull(entityType, nameof(entityType));
+            Check.NotNull(navigationName, nameof(navigationName));
+
+            return entityType.GetDerivedTypes().SelectMany(et =>
+                et.GetDeclaredNavigations().Where(navigation => navigationName == navigation.Name));
         }
 
         public static IEnumerable<IPropertyBase> GetPropertiesAndNavigations(
@@ -263,33 +266,14 @@ namespace Microsoft.Data.Entity.Metadata
             return foreignKey;
         }
 
+        public static ForeignKey FindForeignKey([NotNull] this EntityType entityType, [NotNull] Property property)
+            => entityType.FindForeignKey(new[] { property });
+
         public static IEnumerable<IForeignKey> GetDeclaredForeignKeys([NotNull] this IEntityType entityType)
         {
             Check.NotNull(entityType, nameof(entityType));
 
             return entityType.GetForeignKeys().Where(p => p.DeclaringEntityType == entityType);
-        }
-
-        public static ForeignKey FindForeignKey(
-            [NotNull] this EntityType entityType,
-            [NotNull] EntityType principalType,
-            [CanBeNull] string navigationToPrincipal,
-            [CanBeNull] string navigationToDependent,
-            [CanBeNull] IReadOnlyList<Property> foreignKeyProperties,
-            [CanBeNull] IReadOnlyList<Property> principalProperties,
-            bool? unique)
-        {
-            Check.NotNull(principalType, nameof(principalType));
-
-            return entityType.GetForeignKeys().FirstOrDefault(fk =>
-                fk.IsCompatible(
-                    principalType,
-                    entityType,
-                    navigationToPrincipal,
-                    navigationToDependent,
-                    foreignKeyProperties,
-                    principalProperties,
-                    unique));
         }
 
         public static IKey GetPrimaryKey([NotNull] this IEntityType entityType)

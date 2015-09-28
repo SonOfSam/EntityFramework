@@ -120,17 +120,14 @@
   <data name="ConnectionStringRequired" xml:space="preserve">
     <value>ConnectionString is required to generate code.</value>
   </data>
-  <data name="ErrorMessageWithLineNumber" xml:space="preserve">
-    <value>At line {lineNumber}. Message: {message}</value>
+  <data name="ContextClassNotValidCSharpIdentifier" xml:space="preserve">
+    <value>The context class name passed in, {contextClassName}, is not a valid C# identifier.</value>
   </data>
   <data name="ErrorRunningDbContextTemplate" xml:space="preserve">
     <value>There was an error running the DbContext template. Message: {errorMessage}</value>
   </data>
   <data name="ErrorRunningEntityTypeTemplate" xml:space="preserve">
     <value>There was an error running the EntityType template. Message: {errorMessage}</value>
-  </data>
-  <data name="NotRelativePath" xml:space="preserve">
-    <value>Unable to use the output path, {outputPath}. It must be a relative path which is a sub-directory of the project directory {projectPath}.</value>
   </data>
   <data name="ProjectPathRequired" xml:space="preserve">
     <value>ProjectPath is required to generate code.</value>
@@ -158,8 +155,5 @@
   </data>
   <data name="UnableToGenerateEntityType" xml:space="preserve">
     <value>Unable to generate EntityType {entityTypeName}. {errorMessage}</value>
-  </data>
-  <data name="UsingCustomTemplate" xml:space="preserve">
-    <value>Using custom template {customTemplateFilePath}</value>
   </data>
 </root>

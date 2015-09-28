@@ -14,9 +14,8 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Tests
             var configuration = new ReverseEngineeringConfiguration
             {
                 ConnectionString = null,
-                CustomTemplatePath = null,
                 ProjectPath = null,
-                RelativeOutputPath = null
+                OutputPath = null
             };
 
             Assert.Equal(Strings.ConnectionStringRequired,
@@ -33,17 +32,28 @@ namespace Microsoft.Data.Entity.Relational.Design.ReverseEngineering.Tests
                 Assert.Throws<ArgumentException>(
                     () => configuration.CheckValidity()).Message);
 
-            configuration.RelativeOutputPath = @"\AnAbsolutePath";
-            Assert.Equal(Strings.NotRelativePath(@"\AnAbsolutePath", "NonEmptyProjectPath"),
+            configuration.ContextClassName = @"Invalid!CSharp*Class&Name";
+            Assert.Equal(Strings.ContextClassNotValidCSharpIdentifier(@"Invalid!CSharp*Class&Name"),
                 Assert.Throws<ArgumentException>(
                     () => configuration.CheckValidity()).Message);
 
-            configuration.RelativeOutputPath = @"Looks\Like\A\RelativePath\..\..\..\..\..\But\Is\Not";
-            Assert.Equal(Strings.NotRelativePath(@"Looks\Like\A\RelativePath\..\..\..\..\..\But\Is\Not", "NonEmptyProjectPath"),
+            configuration.ContextClassName = "1CSharpClassNameCannotStartWithNumber";
+            Assert.Equal(Strings.ContextClassNotValidCSharpIdentifier("1CSharpClassNameCannotStartWithNumber"),
                 Assert.Throws<ArgumentException>(
                     () => configuration.CheckValidity()).Message);
 
-            configuration.RelativeOutputPath = @"A\Real\RelativePath";
+            configuration.ContextClassName = "volatile";  // cannot be C# keyword
+            Assert.Equal(Strings.ContextClassNotValidCSharpIdentifier("volatile"),
+                Assert.Throws<ArgumentException>(
+                    () => configuration.CheckValidity()).Message);
+
+            configuration.ContextClassName = "GoodClassName";
+            configuration.OutputPath = @"\AnAbsolutePath";
+            Assert.Equal(Strings.RootNamespaceRequired,
+                Assert.Throws<ArgumentException>(
+                    () => configuration.CheckValidity()).Message);
+
+            configuration.OutputPath = @"A\Relative\Path";
             Assert.Equal(Strings.RootNamespaceRequired,
                 Assert.Throws<ArgumentException>(
                     () => configuration.CheckValidity()).Message);
